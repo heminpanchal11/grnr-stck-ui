@@ -106,6 +106,22 @@ export const navigationConfig: NavigationSection[] = [
       }
     ]
   },
+  {
+    title: 'Indicators',
+    items: [
+      {
+        label: 'Heatmaps',
+        icon: Flame,
+        children: [
+          {
+            label: 'SubCategory',
+            icon: GitBranch,
+            path: '/indicators/heatmaps/subcategory'
+          }
+        ]
+      }
+    ]
+  },
 
   {
     title: 'Config & Support',

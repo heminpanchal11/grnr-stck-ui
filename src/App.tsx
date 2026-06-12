@@ -11,6 +11,7 @@ import { Categories } from './pages/Markets/NSE/Categories';
 import { Subcategories } from './pages/Markets/NSE/Subcategories';
 import CategoriesHeatmap from './pages/Views/Heatmap/Categories';
 import SubcategoriesHeatmap from './pages/Views/Heatmap/Subcategories';
+import { SubcategoryHeatmap } from './pages/Indicators/Heatmaps/Subcategory';
 
 function App() {
   return (
@@ -40,6 +41,13 @@ function App() {
             <Route path="heatmap">
               <Route path="categories" element={<CategoriesHeatmap />} />
               <Route path="subcategories" element={<SubcategoriesHeatmap />} />
+            </Route>
+          </Route>
+
+          {/* Indicators Heatmap pages */}
+          <Route path="indicators">
+            <Route path="heatmaps">
+              <Route path="subcategory" element={<SubcategoryHeatmap />} />
             </Route>
           </Route>
           
