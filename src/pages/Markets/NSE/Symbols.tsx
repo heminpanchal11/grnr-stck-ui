@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
-  ArrowUpRight,
-  ArrowDownRight,
   Plus,
   Trash2,
   Edit2,
@@ -11,7 +9,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Activity
+  Activity,
+  ChevronRight
 } from 'lucide-react';
 import styles from '../../pages.module.css';
 import {
@@ -26,19 +25,7 @@ import {
   type SubcategoryResponse
 } from '../../../utils/api';
 
-interface StockSymbol {
-  name: string;
-  company: string;
-  price: string;
-  change: string;
-  volume: string;
-  positive: boolean;
-}
-
 export const Symbols: React.FC = () => {
-  // Static Sector Symbols state
-  const [searchQuery, setSearchQuery] = useState('');
-
   // API Symbols Manager state
   const [symbolsList, setSymbolsList] = useState<StockSymbolResponse[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryResponse[]>([]);
@@ -47,6 +34,10 @@ export const Symbols: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Tree Stateful Controls
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
 
   // Create sub-states
   const [newSymbolName, setNewSymbolName] = useState('');
@@ -61,16 +52,6 @@ export const Symbols: React.FC = () => {
   const [editingSubcategoryName, setEditingSubcategoryName] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
-
-  const staticSymbols: StockSymbol[] = [
-    { name: 'RELIANCE', company: 'Reliance Industries Ltd.', price: '₹2,450.45', change: '+1.25%', volume: '4,821,304', positive: true },
-    { name: 'TCS', company: 'Tata Consultancy Services Ltd.', price: '₹3,210.50', change: '-0.82%', volume: '1,241,892', positive: false },
-    { name: 'INFY', company: 'Infosys Ltd.', price: '₹1,520.25', change: '+2.41%', volume: '2,891,450', positive: true },
-    { name: 'HDFCBANK', company: 'HDFC Bank Ltd.', price: '₹1,600.10', change: '+0.48%', volume: '3,102,941', positive: true },
-    { name: 'ICICIBANK', company: 'ICICI Bank Ltd.', price: '₹920.80', change: '-1.15%', volume: '2,492,083', positive: false },
-    { name: 'SBIN', company: 'State Bank of India', price: '₹575.30', change: '+1.88%', volume: '5,920,381', positive: true },
-    { name: 'BHARTIARTL', company: 'Bharti Airtel Ltd.', price: '₹842.15', change: '-0.34%', volume: '1,894,203', positive: false }
-  ];
 
   // Fetch symbols, categories, and subcategories
   const fetchData = async () => {
@@ -208,19 +189,213 @@ export const Symbols: React.FC = () => {
     }
   };
 
-  // Filter static symbols
-  const filteredStaticSymbols = staticSymbols.filter(sym => 
-    sym.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    sym.company.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Expand All / Collapse All handlers
+  const expandAll = () => {
+    const allCats = new Set<string>();
+    const allSubs = new Set<string>();
+    
+    categoriesList.forEach(cat => {
+      allCats.add(cat.name);
+      const subs = subcategoriesList.filter(s => s.categoryId === cat.id || s.categoryName === cat.name);
+      subs.forEach(sub => {
+        allSubs.add(`${cat.name} > ${sub.name}`);
+      });
+    });
+    
+    // Also include any fallback categories / subcategories present in symbolsList
+    symbolsList.forEach(sym => {
+      allCats.add(sym.category);
+      allSubs.add(`${sym.category} > ${sym.subcategory}`);
+    });
 
-  // Filter backend symbols
-  const filteredDbSymbols = symbolsList.filter(sym =>
-    sym.symbol.toLowerCase().includes(dbSearchQuery.toLowerCase()) ||
-    sym.category.toLowerCase().includes(dbSearchQuery.toLowerCase()) ||
-    sym.subcategory.toLowerCase().includes(dbSearchQuery.toLowerCase()) ||
-    sym.id.toString().includes(dbSearchQuery)
-  );
+    setExpandedCategories(allCats);
+    setExpandedSubcategories(allSubs);
+  };
+
+  const collapseAll = () => {
+    setExpandedCategories(new Set());
+    setExpandedSubcategories(new Set());
+  };
+
+  // Toggle helpers
+  const toggleCategory = (catName: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catName)) {
+        next.delete(catName);
+      } else {
+        next.add(catName);
+      }
+      return next;
+    });
+  };
+
+  const toggleSubcategory = (catName: string, subName: string) => {
+    const key = `${catName} > ${subName}`;
+    setExpandedSubcategories(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Group symbols hierarchically: Category > Subcategory > Symbol
+  const groupedData = useMemo(() => {
+    const groups: {
+      [catName: string]: {
+        id: number;
+        subcategories: {
+          [subName: string]: {
+            id: number;
+            symbols: StockSymbolResponse[];
+          }
+        }
+      }
+    } = {};
+
+    // Initialize categories
+    categoriesList.forEach(cat => {
+      groups[cat.name] = {
+        id: cat.id,
+        subcategories: {}
+      };
+    });
+
+    // Initialize subcategories
+    subcategoriesList.forEach(sub => {
+      const catName = sub.categoryName;
+      if (groups[catName]) {
+        groups[catName].subcategories[sub.name] = {
+          id: sub.id,
+          symbols: []
+        };
+      }
+    });
+
+    // Group symbols
+    symbolsList.forEach(sym => {
+      const catName = sym.category;
+      const subName = sym.subcategory;
+      if (!groups[catName]) {
+        groups[catName] = {
+          id: -1,
+          subcategories: {}
+        };
+      }
+      if (!groups[catName].subcategories[subName]) {
+        groups[catName].subcategories[subName] = {
+          id: -2,
+          symbols: []
+        };
+      }
+      groups[catName].subcategories[subName].symbols.push(sym);
+    });
+
+    return groups;
+  }, [categoriesList, subcategoriesList, symbolsList]);
+
+  // Filter grouped data and track overall result presence
+  const filteredGroups = useMemo(() => {
+    const searchLower = dbSearchQuery.toLowerCase().trim();
+    if (!searchLower) {
+      return { filtered: groupedData, hasResults: symbolsList.length > 0 };
+    }
+
+    const filtered: typeof groupedData = {};
+    let hasResults = false;
+
+    Object.keys(groupedData).forEach(catName => {
+      const catInfo = groupedData[catName];
+      const catNameMatches = catName.toLowerCase().includes(searchLower);
+
+      const filteredSubcategories: typeof catInfo.subcategories = {};
+      let catHasMatchingSub = false;
+
+      Object.keys(catInfo.subcategories).forEach(subName => {
+        const subInfo = catInfo.subcategories[subName];
+        const subNameMatches = subName.toLowerCase().includes(searchLower);
+
+        const matchedSymbols = subInfo.symbols.filter(sym => 
+          sym.symbol.toLowerCase().includes(searchLower) ||
+          sym.id.toString().includes(searchLower)
+        );
+
+        const finalSymbols = (catNameMatches || subNameMatches) ? subInfo.symbols : matchedSymbols;
+
+        if (finalSymbols.length > 0 || subNameMatches) {
+          filteredSubcategories[subName] = {
+            ...subInfo,
+            symbols: finalSymbols
+          };
+          catHasMatchingSub = true;
+        }
+      });
+
+      if (catNameMatches || catHasMatchingSub) {
+        filtered[catName] = {
+          ...catInfo,
+          subcategories: filteredSubcategories
+        };
+        hasResults = true;
+      }
+    });
+
+    return { filtered, hasResults };
+  }, [groupedData, dbSearchQuery, symbolsList]);
+
+  // Auto expand categories & subcategories containing search matches
+  useEffect(() => {
+    const searchLower = dbSearchQuery.toLowerCase().trim();
+    if (searchLower.length > 0) {
+      const catsToExpand = new Set<string>();
+      const subsToExpand = new Set<string>();
+
+      Object.keys(groupedData).forEach(catName => {
+        const catInfo = groupedData[catName];
+        const catNameMatches = catName.toLowerCase().includes(searchLower);
+        let catShouldExpand = catNameMatches;
+
+        Object.keys(catInfo.subcategories).forEach(subName => {
+          const subInfo = catInfo.subcategories[subName];
+          const subNameMatches = subName.toLowerCase().includes(searchLower);
+          const hasMatchingSymbol = subInfo.symbols.some(s =>
+            s.symbol.toLowerCase().includes(searchLower) || s.id.toString().includes(searchLower)
+          );
+
+          if (subNameMatches || hasMatchingSymbol) {
+            catsToExpand.add(catName);
+            subsToExpand.add(`${catName} > ${subName}`);
+            catShouldExpand = true;
+          }
+        });
+
+        if (catShouldExpand) {
+          catsToExpand.add(catName);
+        }
+      });
+
+      setExpandedCategories(catsToExpand);
+      setExpandedSubcategories(subsToExpand);
+    }
+  }, [dbSearchQuery, groupedData]);
+
+  // Get unique union list of categories to render
+  const categoriesToRender = useMemo(() => {
+    const list = [...categoriesList];
+    symbolsList.forEach(sym => {
+      if (sym.category && !list.some(c => c.name === sym.category)) {
+        list.push({
+          id: -Math.abs(sym.category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)),
+          name: sym.category
+        });
+      }
+    });
+    return list;
+  }, [categoriesList, symbolsList]);
 
   // Filter subcategories for creation form
   const availableSubcategories = subcategoriesList.filter(sub => {
@@ -253,75 +428,8 @@ export const Symbols: React.FC = () => {
         <p className={styles.pageSubtitle}>Monitor key stock symbols listed on the National Stock Exchange of India (NSE).</p>
       </div>
 
-      {/* Main card */}
-      <div className={styles.card}>
-        <h3 className={styles.sectionTitle}>Symbol Performance Overview</h3>
-        {/* Search input inside card */}
-        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginBottom: '20px', maxWidth: '360px' }}>
-          <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            placeholder="Search symbols or companies..."
-            className={styles.input}
-            style={{ paddingLeft: '36px', width: '100%' }}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Symbols Table */}
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Company Name</th>
-                <th>Last Price</th>
-                <th>Daily Change</th>
-                <th>Volume</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStaticSymbols.length > 0 ? (
-                filteredStaticSymbols.map((sym, idx) => (
-                  <tr key={idx}>
-                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                      {sym.name}
-                    </td>
-                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                      {sym.company}
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {sym.price}
-                    </td>
-                    <td>
-                      <span 
-                        className={`${styles.badge} ${sym.positive ? styles.badgeSuccess : styles.badgeError}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {sym.positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {sym.change}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)' }}>
-                      {sym.volume}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    No stock symbols found matching "{searchQuery}"
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* API Symbols Manager Card */}
-      <div className={styles.card} style={{ marginTop: '32px' }}>
+      <div className={styles.card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '8px' }}>
           <div>
             <h3 className={styles.sectionTitle} style={{ marginBottom: '4px' }}>Symbol Database Manager</h3>
@@ -417,17 +525,37 @@ export const Symbols: React.FC = () => {
           paddingBottom: '16px',
           borderBottom: '1px solid var(--border-color)'
         }}>
-          {/* Search Box */}
-          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', minWidth: '260px', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
-            <input
-              type="text"
-              placeholder="Search symbol list..."
-              className={styles.input}
-              style={{ paddingLeft: '36px', width: '100%' }}
-              value={dbSearchQuery}
-              onChange={(e) => setDbSearchQuery(e.target.value)}
-            />
+          {/* Search Box & Tree Toggles */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: 2, minWidth: '260px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', flex: 1, minWidth: '200px' }}>
+              <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search symbols, subcategories, categories..."
+                className={styles.input}
+                style={{ paddingLeft: '36px', width: '100%' }}
+                value={dbSearchQuery}
+                onChange={(e) => setDbSearchQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={expandAll}
+                className={styles.input}
+                style={{ padding: '8px 12px', cursor: 'pointer', fontWeight: 600, fontSize: '12px', height: '42px' }}
+              >
+                Expand All
+              </button>
+              <button
+                type="button"
+                onClick={collapseAll}
+                className={styles.input}
+                style={{ padding: '8px 12px', cursor: 'pointer', fontWeight: 600, fontSize: '12px', height: '42px' }}
+              >
+                Collapse All
+              </button>
+            </div>
           </div>
 
           {/* Add Symbol Form */}
@@ -536,201 +664,332 @@ export const Symbols: React.FC = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ width: '100px' }}>ID</th>
-                  <th>Symbol Code</th>
-                  <th>Parent Category</th>
-                  <th>Subcategory</th>
+                  <th style={{ width: '150px' }}>ID / Level</th>
+                  <th>Hierarchy Node</th>
                   <th style={{ width: '200px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDbSymbols.length > 0 ? (
-                  filteredDbSymbols.map((sym) => {
-                    const isEditing = editingId === sym.id;
+                {categoriesToRender.length > 0 && filteredGroups.hasResults ? (
+                  categoriesToRender.map(cat => {
+                    const catName = cat.name;
+                    if (dbSearchQuery && !filteredGroups.filtered[catName]) return null;
+
+                    const catInfo = filteredGroups.filtered[catName] || { id: cat.id, subcategories: {} };
+                    const subcategoryNames = Object.keys(catInfo.subcategories);
+                    const isCatExpanded = expandedCategories.has(catName);
+
                     return (
-                      <tr key={sym.id}>
-                        <td>
-                          <code style={{
+                      <React.Fragment key={cat.id}>
+                        {/* Parent Category Row (Level 0) */}
+                        <tr
+                          onClick={() => toggleCategory(catName)}
+                          style={{
                             backgroundColor: 'var(--bg-tertiary)',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontFamily: 'monospace',
-                            color: 'var(--text-secondary)',
-                            fontWeight: 600
-                          }}>
-                            #{sym.id}
-                          </code>
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className={styles.input}
-                              style={{ width: '100%', maxWidth: '240px', padding: '6px 12px', textTransform: 'uppercase' }}
-                              value={editingSymbolName}
-                              onChange={(e) => setEditingSymbolName(e.target.value)}
-                              disabled={submitting}
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleUpdate(sym.id);
-                                if (e.key === 'Escape') {
-                                  setEditingId(null);
-                                  setEditingSymbolName('');
-                                  setEditingCategoryName('');
-                                  setEditingSubcategoryName('');
-                                  setEditingOldSymbolName('');
-                                }
-                              }}
-                            />
-                          ) : (
-                            <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '15px' }}>
-                              {sym.symbol}
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            borderLeft: isCatExpanded ? '3px solid var(--primary)' : '3px solid transparent'
+                          }}
+                        >
+                          <td colSpan={2} style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <ChevronRight 
+                                size={16} 
+                                style={{ 
+                                  color: 'var(--text-muted)',
+                                  transform: isCatExpanded ? 'rotate(90deg)' : 'none',
+                                  transition: 'transform var(--transition-fast)'
+                                }} 
+                              />
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '15px' }}>
+                                {catName}
+                              </span>
+                              <span 
+                                className={styles.badge} 
+                                style={{ 
+                                  backgroundColor: 'var(--primary-light)', 
+                                  color: 'var(--primary)', 
+                                  textTransform: 'none', 
+                                  letterSpacing: 0,
+                                  fontWeight: 600,
+                                  fontSize: '11px',
+                                  padding: '2px 8px'
+                                }}
+                              >
+                                {subcategoryNames.length} {subcategoryNames.length === 1 ? 'subcategory' : 'subcategories'}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '12px 16px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              {isCatExpanded ? 'Collapse' : 'Expand'}
                             </span>
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <select
-                              className={styles.input}
-                              style={{ width: '100%', maxWidth: '180px', padding: '6px 10px', height: '36px' }}
-                              value={editingCategoryName}
-                              onChange={(e) => handleEditCategoryChange(e.target.value)}
-                              disabled={submitting}
-                            >
-                              {categoriesList.map(cat => (
-                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                              ))}
-                            </select>
+                          </td>
+                        </tr>
+
+                        {/* Children Subcategories (Level 1) */}
+                        {isCatExpanded && (
+                          subcategoryNames.length === 0 ? (
+                            <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                              <td colSpan={3} style={{ padding: '12px 16px 12px 48px', color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+                                No industry subcategories are registered under this sector category.
+                              </td>
+                            </tr>
                           ) : (
-                            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                              {sym.category}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <select
-                              className={styles.input}
-                              style={{ width: '100%', maxWidth: '200px', padding: '6px 10px', height: '36px' }}
-                              value={editingSubcategoryName}
-                              onChange={(e) => setEditingSubcategoryName(e.target.value)}
-                              disabled={submitting || availableEditSubcategories.length === 0}
-                            >
-                              {availableEditSubcategories.length === 0 ? (
-                                <option value="">No subcategories</option>
-                              ) : (
-                                availableEditSubcategories.map(sub => (
-                                  <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                ))
-                              )}
-                            </select>
-                          ) : (
-                            <span className={styles.badge} style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 600 }}>
-                              {sym.subcategory}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            {isEditing ? (
-                              <>
-                                <button
-                                  onClick={() => handleUpdate(sym.id)}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                                    borderColor: 'var(--accent-success)',
-                                    color: 'var(--accent-success)',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 600
-                                  }}
-                                  disabled={submitting}
-                                >
-                                  <Check size={14} />
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingId(null);
-                                    setEditingSymbolName('');
-                                    setEditingCategoryName('');
-                                    setEditingSubcategoryName('');
-                                    setEditingOldSymbolName('');
-                                  }}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                  disabled={submitting}
-                                >
-                                  <X size={14} />
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingId(sym.id);
-                                    setEditingOldSymbolName(sym.symbol);
-                                    setEditingSymbolName(sym.symbol);
-                                    setEditingCategoryName(sym.category);
-                                    setEditingSubcategoryName(sym.subcategory);
-                                  }}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  <Edit2 size={12} />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(sym.symbol)}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                                    borderColor: 'rgba(239, 68, 68, 0.2)',
-                                    color: 'var(--accent-error)',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  <Trash2 size={12} />
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                            subcategoryNames.map(subName => {
+                              const subInfo = catInfo.subcategories[subName];
+                              const subKey = `${catName} > ${subName}`;
+                              const isSubExpanded = expandedSubcategories.has(subKey);
+                              const symbols = subInfo.symbols;
+
+                              return (
+                                <React.Fragment key={subKey}>
+                                  {/* Subcategory Row (Level 1) */}
+                                  <tr
+                                    onClick={() => toggleSubcategory(catName, subName)}
+                                    style={{
+                                      backgroundColor: 'var(--bg-secondary)',
+                                      cursor: 'pointer',
+                                      userSelect: 'none',
+                                      borderLeft: isSubExpanded ? '3px solid var(--accent-info)' : '3px solid transparent'
+                                    }}
+                                  >
+                                    <td colSpan={2} style={{ padding: '10px 16px 10px 40px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <ChevronRight 
+                                          size={14} 
+                                          style={{ 
+                                            color: 'var(--text-muted)',
+                                            transform: isSubExpanded ? 'rotate(90deg)' : 'none',
+                                            transition: 'transform var(--transition-fast)'
+                                          }} 
+                                        />
+                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
+                                          {subName}
+                                        </span>
+                                        <span 
+                                          className={styles.badge} 
+                                          style={{ 
+                                            backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                                            color: 'var(--accent-info)', 
+                                            textTransform: 'none', 
+                                            letterSpacing: 0,
+                                            fontWeight: 600,
+                                            fontSize: '10px',
+                                            padding: '1px 6px'
+                                          }}
+                                        >
+                                          {symbols.length} {symbols.length === 1 ? 'symbol' : 'symbols'}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right', padding: '10px 16px' }}>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                        {isSubExpanded ? 'Collapse' : 'Expand'}
+                                      </span>
+                                    </td>
+                                  </tr>
+
+                                  {/* Symbols (Level 2) */}
+                                  {isSubExpanded && (
+                                    symbols.length === 0 ? (
+                                      <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                        <td colSpan={3} style={{ padding: '10px 16px 10px 72px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>
+                                          No symbols are registered under this subcategory.
+                                        </td>
+                                      </tr>
+                                    ) : (
+                                      symbols.map(sym => {
+                                        const isEditing = editingId === sym.id;
+                                        return (
+                                          <tr key={sym.id} style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                            {/* ID Column */}
+                                            <td style={{ paddingLeft: '72px' }}>
+                                              <code style={{
+                                                backgroundColor: 'var(--bg-tertiary)',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '11px',
+                                                fontFamily: 'monospace',
+                                                color: 'var(--text-secondary)',
+                                                fontWeight: 600
+                                              }}>
+                                                #{sym.id}
+                                              </code>
+                                            </td>
+
+                                            {/* Symbol Name / Editing Input Column */}
+                                            <td style={{ paddingLeft: '12px' }}>
+                                              {isEditing ? (
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                                  <input
+                                                    type="text"
+                                                    className={styles.input}
+                                                    style={{ width: '100%', maxWidth: '180px', padding: '6px 12px', textTransform: 'uppercase' }}
+                                                    value={editingSymbolName}
+                                                    onChange={(e) => setEditingSymbolName(e.target.value)}
+                                                    disabled={submitting}
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') handleUpdate(sym.id);
+                                                      if (e.key === 'Escape') {
+                                                        setEditingId(null);
+                                                        setEditingSymbolName('');
+                                                        setEditingCategoryName('');
+                                                        setEditingSubcategoryName('');
+                                                        setEditingOldSymbolName('');
+                                                      }
+                                                    }}
+                                                  />
+                                                  
+                                                  {/* Edit Category Selector */}
+                                                  <select
+                                                    className={styles.input}
+                                                    style={{ height: '34px', padding: '0 8px', minWidth: '130px', fontSize: '12px' }}
+                                                    value={editingCategoryName}
+                                                    onChange={(e) => handleEditCategoryChange(e.target.value)}
+                                                    disabled={submitting}
+                                                  >
+                                                    {categoriesList.map(cat => (
+                                                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                                    ))}
+                                                  </select>
+
+                                                  {/* Edit Subcategory Selector */}
+                                                  <select
+                                                    className={styles.input}
+                                                    style={{ height: '34px', padding: '0 8px', minWidth: '140px', fontSize: '12px' }}
+                                                    value={editingSubcategoryName}
+                                                    onChange={(e) => setEditingSubcategoryName(e.target.value)}
+                                                    disabled={submitting || availableEditSubcategories.length === 0}
+                                                  >
+                                                    {availableEditSubcategories.length === 0 ? (
+                                                      <option value="">No subcategories</option>
+                                                    ) : (
+                                                      availableEditSubcategories.map(sub => (
+                                                        <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                                      ))
+                                                    )}
+                                                  </select>
+                                                </div>
+                                              ) : (
+                                                <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '14px' }}>
+                                                  {sym.symbol}
+                                                </span>
+                                              )}
+                                            </td>
+
+                                            {/* Action Buttons Column */}
+                                            <td style={{ textAlign: 'right', paddingRight: '24px' }}>
+                                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+                                                {isEditing ? (
+                                                  <>
+                                                    <button
+                                                      onClick={() => handleUpdate(sym.id)}
+                                                      className={styles.input}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '6px 12px',
+                                                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                                        borderColor: 'var(--accent-success)',
+                                                        color: 'var(--accent-success)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px',
+                                                        fontWeight: 600
+                                                      }}
+                                                      disabled={submitting}
+                                                    >
+                                                      <Check size={12} />
+                                                      Save
+                                                    </button>
+                                                    <button
+                                                      onClick={() => {
+                                                        setEditingId(null);
+                                                        setEditingSymbolName('');
+                                                        setEditingCategoryName('');
+                                                        setEditingSubcategoryName('');
+                                                        setEditingOldSymbolName('');
+                                                      }}
+                                                      className={styles.input}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '6px 12px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px'
+                                                      }}
+                                                      disabled={submitting}
+                                                    >
+                                                      <X size={12} />
+                                                      Cancel
+                                                    </button>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <button
+                                                      onClick={() => {
+                                                        setEditingId(sym.id);
+                                                        setEditingOldSymbolName(sym.symbol);
+                                                        setEditingSymbolName(sym.symbol);
+                                                        setEditingCategoryName(sym.category);
+                                                        setEditingSubcategoryName(sym.subcategory);
+                                                      }}
+                                                      className={styles.input}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '5px 10px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px',
+                                                        fontWeight: 500
+                                                      }}
+                                                    >
+                                                      <Edit2 size={11} />
+                                                      Edit
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleDelete(sym.symbol)}
+                                                      className={styles.input}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '5px 10px',
+                                                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                                                        borderColor: 'rgba(239, 68, 68, 0.2)',
+                                                        color: 'var(--accent-error)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px',
+                                                        fontWeight: 500
+                                                      }}
+                                                    >
+                                                      <Trash2 size={11} />
+                                                      Delete
+                                                    </button>
+                                                  </>
+                                                )}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })
+                                    )
+                                  )}
+                                </React.Fragment>
+                              );
+                            })
+                          )
+                        )}
+                        </React.Fragment>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                    <td colSpan={3} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
                       <Activity size={36} style={{ marginBottom: '12px', opacity: 0.4, color: 'var(--text-muted)' }} />
                       <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No Database Symbols Registered</p>
                       <p style={{ fontSize: '13px', marginTop: '4px' }}>

@@ -9,8 +9,6 @@ import Help from './pages/Help/Help';
 import { Symbols } from './pages/Markets/NSE/Symbols';
 import { Categories } from './pages/Markets/NSE/Categories';
 import { Subcategories } from './pages/Markets/NSE/Subcategories';
-import CategoriesHeatmap from './pages/Views/Heatmap/Categories';
-import SubcategoriesHeatmap from './pages/Views/Heatmap/Subcategories';
 import { SubcategoryHeatmap } from './pages/Indicators/Heatmaps/Subcategory';
 
 function App() {
@@ -36,13 +34,7 @@ function App() {
             </Route>
           </Route>
 
-          {/* Views Heatmap pages */}
-          <Route path="views">
-            <Route path="heatmap">
-              <Route path="categories" element={<CategoriesHeatmap />} />
-              <Route path="subcategories" element={<SubcategoriesHeatmap />} />
-            </Route>
-          </Route>
+
 
           {/* Indicators Heatmap pages */}
           <Route path="indicators">

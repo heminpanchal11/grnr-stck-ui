@@ -85,27 +85,7 @@ export const navigationConfig: NavigationSection[] = [
       }
     ]
   },
-  {
-    title: 'Views',
-    items: [
-      {
-        label: 'Heatmap',
-        icon: Flame,
-        children: [
-          {
-            label: 'Categories',
-            icon: Layers,
-            path: '/views/heatmap/categories'
-          },
-          {
-            label: 'Subcategories',
-            icon: GitBranch,
-            path: '/views/heatmap/subcategories'
-          }
-        ]
-      }
-    ]
-  },
+
   {
     title: 'Indicators',
     items: [

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
-import { RefreshCw, TrendingUp, Info } from 'lucide-react';
+import { RefreshCw, TrendingUp, Info, Maximize2, Minimize2 } from 'lucide-react';
 import styles from '../../pages.module.css';
 
 interface StockData {
@@ -21,6 +21,40 @@ export const SubcategoryHeatmap: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTheme, setActiveTheme] = useState<string>('light');
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Handle body overflow to prevent background scrolling when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
+
+  // Handle escape key to exit fullscreen mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Trigger ECharts resize after state transitions to fullscreen
+  useEffect(() => {
+    if (chartInstance.current) {
+      const timer = setTimeout(() => {
+        chartInstance.current?.resize();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isFullscreen]);
 
   // Detect current layout theme
   useEffect(() => {
@@ -363,21 +397,60 @@ export const SubcategoryHeatmap: React.FC = () => {
       </div>
 
       {/* Heatmap Card */}
-      <div className={styles.card} style={{ position: 'relative' }}>
+      <div 
+        className={styles.card} 
+        style={isFullscreen ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9999,
+          backgroundColor: 'var(--bg-secondary)',
+          padding: '24px',
+          overflowY: 'auto',
+          borderRadius: 0,
+          transform: 'none',
+          boxShadow: 'none',
+          border: 'none',
+          display: 'flex',
+          flexDirection: 'column'
+        } : { position: 'relative' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 className={styles.sectionTitle} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             Subcategory Stock Distribution Treemap
           </h2>
-          <button
-            type="button"
-            className={styles.toggleBtn}
-            onClick={fetchData}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-            disabled={loading}
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh Prices
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              className={styles.toggleBtn}
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 size={14} />
+                  Exit Fullscreen
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={14} />
+                  Fullscreen
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className={styles.toggleBtn}
+              onClick={fetchData}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+              disabled={loading}
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              Refresh Prices
+            </button>
+          </div>
         </div>
 
         {/* Info label */}
@@ -402,18 +475,18 @@ export const SubcategoryHeatmap: React.FC = () => {
 
         {/* Chart Area */}
         {loading ? (
-          <div style={{ height: '500px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ height: isFullscreen ? 'calc(100vh - 180px)' : '500px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
               <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)' }} />
               <span>Fetching latest stock bhav charts...</span>
             </div>
           </div>
         ) : error ? (
-          <div style={{ height: '500px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--accent-error)' }}>
+          <div style={{ height: isFullscreen ? 'calc(100vh - 180px)' : '500px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--accent-error)' }}>
             {error}
           </div>
         ) : (
-          <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
+          <div ref={chartRef} style={{ width: '100%', height: isFullscreen ? 'calc(100vh - 180px)' : '500px' }} />
         )}
       </div>
     </div>

@@ -1,0 +1,18 @@
+{
+  "short_name": "GrnrStck",
+  "name": "GrnrStck Stock Analysis Dashboard",
+  "description": "Progressive Web App for managing stock symbols, sectors, categories, and viewing market performance heatmaps.",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0f19",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait"
+}

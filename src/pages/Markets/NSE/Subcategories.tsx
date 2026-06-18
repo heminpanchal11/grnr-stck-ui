@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
-  ArrowUpRight,
-  ArrowDownRight,
   Plus,
   Trash2,
   Edit2,
@@ -11,7 +9,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  GitBranch
+  GitBranch,
+  ChevronRight
 } from 'lucide-react';
 import styles from '../../pages.module.css';
 import {
@@ -24,19 +23,7 @@ import {
   type CategoryResponse
 } from '../../../utils/api';
 
-interface SubsectorCategory {
-  name: string;
-  parentSector: string;
-  stockCount: number;
-  marketCap: string;
-  change: string;
-  positive: boolean;
-}
-
 export const Subcategories: React.FC = () => {
-  // Static Sector Subcategories state
-  const [searchQuery, setSearchQuery] = useState('');
-
   // API Subcategory Manager state
   const [subcategoriesList, setSubcategoriesList] = useState<SubcategoryResponse[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryResponse[]>([]);
@@ -45,6 +32,9 @@ export const Subcategories: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Tree Stateful Controls
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+
   // Create / Edit sub-states
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [newSubcategoryCategoryId, setNewSubcategoryCategoryId] = useState<string>('');
@@ -52,16 +42,6 @@ export const Subcategories: React.FC = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState<string>('');
-
-  const staticSubcategories: SubsectorCategory[] = [
-    { name: 'Private Sector Banks', parentSector: 'Financial Services', stockCount: 14, marketCap: '₹14.8 T', change: '+1.20%', positive: true },
-    { name: 'Public Sector Banks', parentSector: 'Financial Services', stockCount: 12, marketCap: '₹6.2 T', change: '+0.85%', positive: true },
-    { name: 'Software Development & IT', parentSector: 'Information Technology', stockCount: 48, marketCap: '₹12.4 T', change: '-0.90%', positive: false },
-    { name: 'Refineries & Marketing', parentSector: 'Oil, Gas & Materials', stockCount: 8, marketCap: '₹9.8 T', change: '+1.60%', positive: true },
-    { name: 'Passenger Cars & Utility Vehicles', parentSector: 'Automobile & Transportation', stockCount: 6, marketCap: '₹4.5 T', change: '+2.40%', positive: true },
-    { name: 'Pharmaceutical Formulations', parentSector: 'Healthcare & Pharma', stockCount: 32, marketCap: '₹3.9 T', change: '-0.15%', positive: false },
-    { name: 'Iron & Steel Products', parentSector: 'Metals & Mining', stockCount: 18, marketCap: '₹3.1 T', change: '+1.50%', positive: true }
-  ];
 
   // Fetch subcategories and categories
   const fetchData = async () => {
@@ -89,6 +69,94 @@ export const Subcategories: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Group subcategories by Category ID
+  const groupedSubcategories = useMemo(() => {
+    const groups: { [catId: number]: SubcategoryResponse[] } = {};
+    categoriesList.forEach(cat => {
+      groups[cat.id] = [];
+    });
+    subcategoriesList.forEach(sub => {
+      if (!groups[sub.categoryId]) {
+        groups[sub.categoryId] = [];
+      }
+      groups[sub.categoryId].push(sub);
+    });
+    return groups;
+  }, [categoriesList, subcategoriesList]);
+
+  // Filter grouped categories and subcategories based on search query
+  const filteredGroups = useMemo(() => {
+    const filtered: { [catId: number]: SubcategoryResponse[] } = {};
+    const searchLower = dbSearchQuery.toLowerCase().trim();
+    
+    if (!searchLower) {
+      return { filtered: groupedSubcategories, hasResults: subcategoriesList.length > 0 };
+    }
+    
+    let hasResults = false;
+    Object.keys(groupedSubcategories).forEach(key => {
+      const catId = parseInt(key, 10);
+      const subs = groupedSubcategories[catId];
+      const catObj = categoriesList.find(c => c.id === catId);
+      const catName = catObj ? catObj.name : `Category #${catId}`;
+
+      const matchedSubs = subs.filter(sub => 
+        sub.name.toLowerCase().includes(searchLower) ||
+        sub.id.toString().includes(searchLower)
+      );
+
+      const catMatches = catName.toLowerCase().includes(searchLower);
+      const finalSubs = catMatches ? subs : matchedSubs;
+
+      if (finalSubs.length > 0 || catMatches) {
+        filtered[catId] = finalSubs;
+        hasResults = true;
+      }
+    });
+
+    return { filtered, hasResults };
+  }, [groupedSubcategories, categoriesList, dbSearchQuery, subcategoriesList]);
+
+  // Auto expand categories containing search matches
+  useEffect(() => {
+    if (dbSearchQuery.trim().length > 0) {
+      const toExpand = new Set<number>();
+      categoriesList.forEach(cat => {
+        const catName = cat.name.toLowerCase();
+        const searchLower = dbSearchQuery.toLowerCase();
+        const hasMatchingSub = subcategoriesList.some(s => 
+          s.categoryId === cat.id && 
+          (s.name.toLowerCase().includes(searchLower) || s.id.toString().includes(searchLower))
+        );
+        if (catName.includes(searchLower) || hasMatchingSub) {
+          toExpand.add(cat.id);
+        }
+      });
+      setExpandedCategories(toExpand);
+    }
+  }, [dbSearchQuery, categoriesList, subcategoriesList]);
+
+  // Toggle Category open/closed state
+  const toggleCategory = (catId: number) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedCategories(new Set(categoriesList.map(c => c.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedCategories(new Set());
+  };
 
   // Show auto-dismiss success toasts
   const showSuccess = (msg: string) => {
@@ -118,6 +186,14 @@ export const Subcategories: React.FC = () => {
       
       setSubcategoriesList(prev => [...prev, created]);
       setNewSubcategoryName('');
+      
+      // Auto expand the parent category so the new subcategory is visible
+      setExpandedCategories(prev => {
+        const next = new Set(prev);
+        next.add(created.categoryId);
+        return next;
+      });
+
       showSuccess(`Subcategory "${created.name}" created successfully!`);
     } catch (err: any) {
       setError(err.message || 'Failed to create subcategory.');
@@ -131,10 +207,11 @@ export const Subcategories: React.FC = () => {
     if (!editingName.trim() || !editingCategoryId) return;
     setSubmitting(true);
     setError(null);
+    const targetCategoryId = parseInt(editingCategoryId, 10);
     try {
       const updated = await updateSubcategory(id, {
         name: editingName.trim(),
-        categoryId: parseInt(editingCategoryId, 10)
+        categoryId: targetCategoryId
       });
       
       if (!updated.categoryName) {
@@ -146,6 +223,14 @@ export const Subcategories: React.FC = () => {
       setEditingId(null);
       setEditingName('');
       setEditingCategoryId('');
+      
+      // Expand the destination category in case it was modified
+      setExpandedCategories(prev => {
+        const next = new Set(prev);
+        next.add(targetCategoryId);
+        return next;
+      });
+
       showSuccess('Subcategory updated successfully!');
     } catch (err: any) {
       setError(err.message || 'Failed to update subcategory.');
@@ -159,26 +244,13 @@ export const Subcategories: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this subcategory? This will delete all associated data.')) return;
     setError(null);
     try {
-      await deleteSubcategory(id);
+      await deleteSubcategory(id); // mapped to DELETE /api/v1/subcategories/{id}
       setSubcategoriesList(prev => prev.filter(sub => sub.id !== id));
       showSuccess('Subcategory deleted successfully!');
     } catch (err: any) {
       setError(err.message || 'Failed to delete subcategory.');
     }
   };
-
-  // Filter static subcategories
-  const filteredStaticSubcategories = staticSubcategories.filter(sub =>
-    sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.parentSector.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Filter backend subcategories
-  const filteredDbSubcategories = subcategoriesList.filter(sub =>
-    sub.name.toLowerCase().includes(dbSearchQuery.toLowerCase()) ||
-    (sub.categoryName && sub.categoryName.toLowerCase().includes(dbSearchQuery.toLowerCase())) ||
-    sub.id.toString().includes(dbSearchQuery)
-  );
 
   return (
     <div>
@@ -199,80 +271,13 @@ export const Subcategories: React.FC = () => {
         <p className={styles.pageSubtitle}>Drill down into specific industry segments, company counts, and capitalization scales.</p>
       </div>
 
-      {/* Main card */}
-      <div className={styles.card}>
-        <h3 className={styles.sectionTitle}>Subsector Performance Overview</h3>
-        {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginBottom: '20px', maxWidth: '360px' }}>
-          <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            placeholder="Search subsectors..."
-            className={styles.input}
-            style={{ paddingLeft: '36px', width: '100%' }}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Subcategories Table */}
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Subcategory</th>
-                <th>Parent Sector</th>
-                <th>Listed Stocks</th>
-                <th>Market Cap (Est)</th>
-                <th>Daily Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStaticSubcategories.length > 0 ? (
-                filteredStaticSubcategories.map((sub, idx) => (
-                  <tr key={idx}>
-                    <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {sub.name}
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                      {sub.parentSector}
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                      {sub.stockCount} companies
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {sub.marketCap}
-                    </td>
-                    <td>
-                      <span
-                        className={`${styles.badge} ${sub.positive ? styles.badgeSuccess : styles.badgeError}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {sub.positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {sub.change}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    No subcategories found matching "{searchQuery}"
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* API Subcategory Manager Card */}
-      <div className={styles.card} style={{ marginTop: '32px' }}>
+      <div className={styles.card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '8px' }}>
           <div>
-            <h3 className={styles.sectionTitle} style={{ marginBottom: '4px' }}>Subcategory Database Manager</h3>
+            <h3 className={styles.sectionTitle} style={{ marginBottom: '4px' }}>Subcategory Tree Manager</h3>
             <p className={styles.pageSubtitle} style={{ marginBottom: '16px' }}>
-              Add, update, or remove database industry subcategories and map them to their parent categories.
+              Organize and modify stock subcategories nested hierarchically under their parent sector categories.
             </p>
           </div>
           <button
@@ -364,16 +369,52 @@ export const Subcategories: React.FC = () => {
           borderBottom: '1px solid var(--border-color)'
         }}>
           {/* Search Box */}
-          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', minWidth: '280px', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
-            <input
-              type="text"
-              placeholder="Search subcategory list..."
-              className={styles.input}
-              style={{ paddingLeft: '36px', width: '100%' }}
-              value={dbSearchQuery}
-              onChange={(e) => setDbSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '320px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative', flex: 1 }}>
+              <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)', width: '16px', height: '16px', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search subcategory or sector..."
+                className={styles.input}
+                style={{ paddingLeft: '36px', width: '100%' }}
+                value={dbSearchQuery}
+                onChange={(e) => setDbSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            {/* Tree Navigation Actions */}
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={expandAll}
+                className={styles.input}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)'
+                }}
+                disabled={categoriesList.length === 0}
+                type="button"
+              >
+                Expand All
+              </button>
+              <button
+                onClick={collapseAll}
+                className={styles.input}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)'
+                }}
+                disabled={categoriesList.length === 0}
+                type="button"
+              >
+                Collapse All
+              </button>
+            </div>
           </div>
 
           {/* Add Subcategory Form */}
@@ -435,7 +476,7 @@ export const Subcategories: React.FC = () => {
           </div>
         )}
 
-        {/* Table / List Container */}
+        {/* Tree Table Container */}
         {loading && subcategoriesList.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 0', gap: '12px' }}>
             <RefreshCw size={32} className="spin-icon" style={{ color: 'var(--primary)' }} />
@@ -446,175 +487,251 @@ export const Subcategories: React.FC = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ width: '100px' }}>ID</th>
-                  <th>Subcategory Name</th>
-                  <th>Parent Category</th>
+                  <th style={{ width: '120px' }}>ID / Level</th>
+                  <th>Hierarchy Node</th>
                   <th style={{ width: '200px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDbSubcategories.length > 0 ? (
-                  filteredDbSubcategories.map((sub) => {
-                    const isEditing = editingId === sub.id;
+                {categoriesList.length > 0 && filteredGroups.hasResults ? (
+                  categoriesList.map(cat => {
+                    // Filter group check
+                    if (dbSearchQuery && !filteredGroups.filtered[cat.id]) return null;
+                    
+                    const subs = filteredGroups.filtered[cat.id] || [];
+                    const isExpanded = expandedCategories.has(cat.id);
+
                     return (
-                      <tr key={sub.id}>
-                        <td>
-                          <code style={{
+                      <React.Fragment key={cat.id}>
+                        {/* Parent Category Row (Level 0) */}
+                        <tr 
+                          onClick={() => toggleCategory(cat.id)}
+                          style={{
                             backgroundColor: 'var(--bg-tertiary)',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontFamily: 'monospace',
-                            color: 'var(--text-secondary)',
-                            fontWeight: 600
-                          }}>
-                            #{sub.id}
-                          </code>
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className={styles.input}
-                              style={{ width: '100%', maxWidth: '280px', padding: '6px 12px' }}
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              disabled={submitting}
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleUpdate(sub.id);
-                                if (e.key === 'Escape') {
-                                  setEditingId(null);
-                                  setEditingName('');
-                                  setEditingCategoryId('');
-                                }
-                              }}
-                            />
-                          ) : (
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '15px' }}>
-                              {sub.name}
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            borderLeft: isExpanded ? '3px solid var(--primary)' : '3px solid transparent'
+                          }}
+                        >
+                          <td colSpan={2} style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <ChevronRight 
+                                size={16} 
+                                style={{ 
+                                  color: 'var(--text-muted)',
+                                  transform: isExpanded ? 'rotate(90deg)' : 'none',
+                                  transition: 'transform var(--transition-fast)'
+                                }} 
+                              />
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '15px' }}>
+                                {cat.name}
+                              </span>
+                              <span 
+                                className={styles.badge} 
+                                style={{ 
+                                  backgroundColor: 'var(--primary-light)', 
+                                  color: 'var(--primary)', 
+                                  textTransform: 'none', 
+                                  letterSpacing: 0,
+                                  fontWeight: 600,
+                                  fontSize: '11px',
+                                  padding: '2px 8px'
+                                }}
+                              >
+                                {subs.length} {subs.length === 1 ? 'subcategory' : 'subcategories'}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '12px 16px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              {isExpanded ? 'Collapse Folder' : 'Expand Folder'}
                             </span>
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <select
-                              className={styles.input}
-                              style={{ width: '100%', maxWidth: '220px', padding: '6px 10px', height: '36px' }}
-                              value={editingCategoryId}
-                              onChange={(e) => setEditingCategoryId(e.target.value)}
-                              disabled={submitting}
-                            >
-                              {categoriesList.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                              ))}
-                            </select>
+                          </td>
+                        </tr>
+
+                        {/* Children Subcategories (Level 1) */}
+                        {isExpanded && (
+                          subs.length === 0 ? (
+                            <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                              <td colSpan={3} style={{ padding: '12px 16px 12px 48px', color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+                                No industry subcategories are registered under this sector.
+                              </td>
+                            </tr>
                           ) : (
-                            <span className={styles.badge} style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 600 }}>
-                              {sub.categoryName || `Category #${sub.categoryId}`}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            {isEditing ? (
-                              <>
-                                <button
-                                  onClick={() => handleUpdate(sub.id)}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                                    borderColor: 'var(--accent-success)',
-                                    color: 'var(--accent-success)',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 600
-                                  }}
-                                  disabled={submitting}
-                                >
-                                  <Check size={14} />
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingId(null);
-                                    setEditingName('');
-                                    setEditingCategoryId('');
-                                  }}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                  disabled={submitting}
-                                >
-                                  <X size={14} />
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingId(sub.id);
-                                    setEditingName(sub.name);
-                                    setEditingCategoryId(sub.categoryId.toString());
-                                  }}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  <Edit2 size={12} />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(sub.id)}
-                                  className={styles.input}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
-                                    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                                    borderColor: 'rgba(239, 68, 68, 0.2)',
-                                    color: 'var(--accent-error)',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  <Trash2 size={12} />
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                            subs.map(sub => {
+                              const isEditing = editingId === sub.id;
+                              return (
+                                <tr key={sub.id} style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                  {/* ID / Spacing Column */}
+                                  <td style={{ paddingLeft: '48px' }}>
+                                    <code style={{
+                                      backgroundColor: 'var(--bg-tertiary)',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontFamily: 'monospace',
+                                      color: 'var(--text-secondary)',
+                                      fontWeight: 600
+                                    }}>
+                                      #{sub.id}
+                                    </code>
+                                  </td>
+                                  
+                                  {/* Subcategory Name / Editing Column */}
+                                  <td>
+                                    {isEditing ? (
+                                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                          type="text"
+                                          className={styles.input}
+                                          style={{ width: '100%', maxWidth: '260px', padding: '6px 12px' }}
+                                          value={editingName}
+                                          onChange={(e) => setEditingName(e.target.value)}
+                                          disabled={submitting}
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleUpdate(sub.id);
+                                            if (e.key === 'Escape') {
+                                              setEditingId(null);
+                                              setEditingName('');
+                                              setEditingCategoryId('');
+                                            }
+                                          }}
+                                        />
+                                        
+                                        {/* Dropdown to change parent category during inline edit */}
+                                        <select
+                                          className={styles.input}
+                                          style={{ height: '36px', padding: '0 8px', minWidth: '160px', fontSize: '13px' }}
+                                          value={editingCategoryId}
+                                          onChange={(e) => setEditingCategoryId(e.target.value)}
+                                          disabled={submitting}
+                                        >
+                                          {categoriesList.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    ) : (
+                                      <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '14px' }}>
+                                        {sub.name}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Action Controls Column */}
+                                  <td>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                      {isEditing ? (
+                                        <>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleUpdate(sub.id);
+                                            }}
+                                            className={styles.input}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              padding: '6px 12px',
+                                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                              borderColor: 'var(--accent-success)',
+                                              color: 'var(--accent-success)',
+                                              cursor: 'pointer',
+                                              fontSize: '12px',
+                                              fontWeight: 600
+                                            }}
+                                            disabled={submitting}
+                                          >
+                                            <Check size={14} />
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingId(null);
+                                              setEditingName('');
+                                              setEditingCategoryId('');
+                                            }}
+                                            className={styles.input}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              padding: '6px 12px',
+                                              cursor: 'pointer',
+                                              fontSize: '12px'
+                                            }}
+                                            disabled={submitting}
+                                          >
+                                            <X size={14} />
+                                            Cancel
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingId(sub.id);
+                                              setEditingName(sub.name);
+                                              setEditingCategoryId(sub.categoryId.toString());
+                                            }}
+                                            className={styles.input}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              padding: '6px 12px',
+                                              cursor: 'pointer',
+                                              fontSize: '12px',
+                                              fontWeight: 500
+                                            }}
+                                          >
+                                            <Edit2 size={12} />
+                                            Edit
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDelete(sub.id);
+                                            }}
+                                            className={styles.input}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              padding: '6px 12px',
+                                              backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                                              borderColor: 'rgba(239, 68, 68, 0.2)',
+                                              color: 'var(--accent-error)',
+                                              cursor: 'pointer',
+                                              fontSize: '12px',
+                                              fontWeight: 500
+                                            }}
+                                          >
+                                            <Trash2 size={12} />
+                                            Delete
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )
+                        )}
+                      </React.Fragment>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                    <td colSpan={3} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
                       <GitBranch size={36} style={{ marginBottom: '12px', opacity: 0.4, color: 'var(--text-muted)' }} />
-                      <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No Database Subcategories Found</p>
-                      <p style={{ fontSize: '13px', marginTop: '4px' }}>
-                        {dbSearchQuery ? `No records match "${dbSearchQuery}"` : 'Create your first subcategory using the form above.'}
+                      <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>
+                        {categoriesList.length === 0 ? 'No database categories found.' : 'No records match search queries.'}
                       </p>
                     </td>
                   </tr>
