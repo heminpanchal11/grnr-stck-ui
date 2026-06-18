@@ -489,3 +489,52 @@
 .switch input:checked + .slider:before {
   transform: translateX(20px);
 }
+
+/* Volume Alerts Controls & Interactive Table styles */
+.tableControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  padding-left: 36px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filterSelect {
+  min-width: 160px;
+  cursor: pointer;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sortableHeader:hover {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-tertiary);
+}
+

@@ -204,4 +204,34 @@ export async function deleteSymbol(symbolName: string): Promise<void> {
   return handleResponse<void>(response);
 }
 
+export interface VolumeAlertResponse {
+  id: number;
+  stockSymbol: {
+    id: number;
+    symbol: string;
+    subcategory: {
+      id: number;
+      name: string;
+      category: {
+        id: number;
+        name: string;
+      };
+    };
+  };
+  alertDate: string;
+  latestVolume: number;
+  averageVolume: number;
+  multiplier: number;
+  thresholdUsed: number;
+}
+
+/**
+ * Fetch all volume alerts from the backend.
+ * GET /api/v1/alerts
+ */
+export async function getAlerts(): Promise<VolumeAlertResponse[]> {
+  const response = await fetch('/api/v1/alerts');
+  return handleResponse<VolumeAlertResponse[]>(response);
+}
+
 

@@ -11,7 +11,8 @@ import {
   Activity,
   Layers,
   GitBranch,
-  Flame
+  Flame,
+  Bell
 } from 'lucide-react';
 import React from 'react';
 
@@ -99,6 +100,11 @@ export const navigationConfig: NavigationSection[] = [
             path: '/indicators/heatmaps/subcategory'
           }
         ]
+      },
+      {
+        label: 'Volume Alerts',
+        icon: Bell,
+        path: '/indicators/volume-alerts'
       }
     ]
   },
