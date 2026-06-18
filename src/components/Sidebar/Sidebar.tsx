@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={styles.logoContainer}>
           <Link to="/" className={styles.logoDetails} onClick={handleCloseMobile}>
             <Sparkles className={styles.logoIcon} />
-            <span className={styles.logoText}>Antigravity UI</span>
+            <span className={styles.logoText}>Girnar Stock AI</span>
           </Link>
           
           {/* Close button for mobile drawer, toggle for desktop */}

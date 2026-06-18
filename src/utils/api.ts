@@ -234,4 +234,27 @@ export async function getAlerts(): Promise<VolumeAlertResponse[]> {
   return handleResponse<VolumeAlertResponse[]>(response);
 }
 
+/**
+ * Fetch latest bhav records for all symbols.
+ * GET /api/v1/scrapper/bhav/latest
+ */
+export async function getLatestBhav(symbol?: string): Promise<any> {
+  const url = symbol 
+    ? `/api/v1/scrapper/bhav/latest?symbol=${encodeURIComponent(symbol)}`
+    : '/api/v1/scrapper/bhav/latest';
+  const response = await fetch(url);
+  return handleResponse<any>(response);
+}
+
+/**
+ * Fetch latest stored bhav record for a specific symbol.
+ * GET /api/v1/bhav/{symbol}/latest
+ */
+export async function getLatestBhavForSymbol(symbol: string): Promise<any> {
+  const response = await fetch(`/api/v1/bhav/${encodeURIComponent(symbol)}/latest`);
+  return handleResponse<any>(response);
+}
+
+
+
 
