@@ -12,6 +12,7 @@ export const VolumeAlerts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [sortField, setSortField] = useState<string>('alertDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -78,6 +79,13 @@ export const VolumeAlerts: React.FC = () => {
         }
       }
 
+      // Date filter
+      if (selectedDate !== '') {
+        if (alert.alertDate !== selectedDate) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -94,6 +102,10 @@ export const VolumeAlerts: React.FC = () => {
         comparison = a.latestVolume - b.latestVolume;
       } else if (sortField === 'multiplier') {
         comparison = a.multiplier - b.multiplier;
+      } else if (sortField === 'percentageChange') {
+        const aVal = a.percentageChange ?? 0;
+        const bVal = b.percentageChange ?? 0;
+        comparison = aVal - bVal;
       } else if (sortField === 'alertDate') {
         comparison = a.alertDate.localeCompare(b.alertDate);
       } else if (sortField === 'severity') {
@@ -110,7 +122,7 @@ export const VolumeAlerts: React.FC = () => {
     });
 
     return result;
-  }, [alerts, searchQuery, selectedCategory, selectedSeverity, sortField, sortDirection]);
+  }, [alerts, searchQuery, selectedCategory, selectedSeverity, selectedDate, sortField, sortDirection]);
 
 
   const fetchAlerts = async () => {
@@ -148,7 +160,8 @@ export const VolumeAlerts: React.FC = () => {
         averageVolume: 4200000,
         latestVolume: 14700000,
         multiplier: 3.5,
-        thresholdUsed: 1.5
+        thresholdUsed: 1.5,
+        percentageChange: 3.45
       },
       {
         id: 2,
@@ -168,7 +181,8 @@ export const VolumeAlerts: React.FC = () => {
         averageVolume: 2100000,
         latestVolume: 5460000,
         multiplier: 2.6,
-        thresholdUsed: 1.5
+        thresholdUsed: 1.5,
+        percentageChange: -1.20
       },
       {
         id: 3,
@@ -188,7 +202,8 @@ export const VolumeAlerts: React.FC = () => {
         averageVolume: 5800000,
         latestVolume: 10440000,
         multiplier: 1.8,
-        thresholdUsed: 1.5
+        thresholdUsed: 1.5,
+        percentageChange: 2.10
       },
       {
         id: 4,
@@ -208,7 +223,8 @@ export const VolumeAlerts: React.FC = () => {
         averageVolume: 12000000,
         latestVolume: 15600000,
         multiplier: 1.3,
-        thresholdUsed: 1.5
+        thresholdUsed: 1.5,
+        percentageChange: -0.85
       }
     ];
     setAlerts(mockAlerts);
@@ -380,6 +396,37 @@ export const VolumeAlerts: React.FC = () => {
             <option value="warning">Warning</option>
             <option value="info">Info</option>
           </select>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="date"
+              className={`${styles.input} ${styles.filterSelect}`}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              title="Filter by Alert Date"
+            />
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate('')}
+                className={styles.input}
+                style={{
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-secondary)'
+                }}
+                title="Clear Date Filter"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Alerts Table */}
@@ -418,6 +465,12 @@ export const VolumeAlerts: React.FC = () => {
                     onClick={() => handleSort('multiplier')}
                   >
                     Spike Ratio {renderSortIndicator('multiplier')}
+                  </th>
+                  <th 
+                    className={styles.sortableHeader} 
+                    onClick={() => handleSort('percentageChange')}
+                  >
+                    % Change {renderSortIndicator('percentageChange')}
                   </th>
                   <th 
                     className={styles.sortableHeader} 
@@ -465,6 +518,18 @@ export const VolumeAlerts: React.FC = () => {
                             {alert.multiplier.toFixed(2)}x
                           </span>
                         </td>
+                        <td>
+                          {alert.percentageChange !== undefined && alert.percentageChange !== null ? (
+                            <span style={{ 
+                              color: alert.percentageChange > 0 ? 'var(--accent-success)' : alert.percentageChange < 0 ? 'var(--accent-error)' : 'var(--text-primary)',
+                              fontWeight: 600 
+                            }}>
+                              {alert.percentageChange > 0 ? '+' : ''}{alert.percentageChange.toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
                         <td style={{ color: 'var(--text-muted)' }}>{alert.alertDate}</td>
                         <td>
                           <span 
@@ -483,7 +548,7 @@ export const VolumeAlerts: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                       No matching volume anomalies found.
                     </td>
                   </tr>

@@ -223,6 +223,7 @@ export interface VolumeAlertResponse {
   averageVolume: number;
   multiplier: number;
   thresholdUsed: number;
+  percentageChange?: number;
 }
 
 /**

@@ -5,7 +5,7 @@
         "description": "REST API for GrnrStck (Green Stock) - a Stock Scraping and Analysis Platform using Spring Boot and PostgreSQL.",
         "contact": {
             "name": "GrnrStck Team",
-            "email": "support@grnrstck.com"
+            "email": "girnarstocks@gmail.com"
         },
         "version": "v0.0.1"
     },
@@ -19,6 +19,10 @@
         {
             "name": "Category",
             "description": "Endpoints for managing stock categories"
+        },
+        {
+            "name": "Market Holiday",
+            "description": "Endpoints for managing market holidays"
         },
         {
             "name": "Stock Symbol",
@@ -301,6 +305,137 @@
                     },
                     "204": {
                         "description": "Subcategory deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/v1/holidays/{id}": {
+            "get": {
+                "tags": [
+                    "Market Holiday"
+                ],
+                "summary": "Get a market holiday by ID",
+                "description": "Retrieves details of a specific market holiday using its ID.",
+                "operationId": "getHoliday",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved market holiday details",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Market holiday not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Market Holiday"
+                ],
+                "summary": "Update a market holiday by ID",
+                "description": "Updates details of an existing market holiday.",
+                "operationId": "updateHoliday",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MarketHolidayRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "404": {
+                        "description": "Market holiday not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Market holiday updated successfully",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Market Holiday"
+                ],
+                "summary": "Delete a market holiday by ID",
+                "description": "Deletes a market holiday using its ID.",
+                "operationId": "deleteHoliday",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Market holiday not found"
+                    },
+                    "204": {
+                        "description": "Market holiday deleted successfully"
                     }
                 }
             }
@@ -673,6 +808,71 @@
                                     "items": {
                                         "$ref": "#/components/schemas/DailyBhav"
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/holidays": {
+            "get": {
+                "tags": [
+                    "Market Holiday"
+                ],
+                "summary": "Get all market holidays",
+                "description": "Retrieves a list of all registered market holidays.",
+                "operationId": "getAllHolidays",
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved list of market holidays",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MarketHolidayResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Market Holiday"
+                ],
+                "summary": "Create a new market holiday",
+                "description": "Registers a new market holiday in the system.",
+                "operationId": "createHoliday",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MarketHolidayRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Market holiday created successfully",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MarketHolidayResponse"
                                 }
                             }
                         }
@@ -1307,6 +1507,56 @@
                     }
                 }
             }
+        },
+        "/api/v1/alerts/daily-summary": {
+            "get": {
+                "tags": [
+                    "Volume Alerts"
+                ],
+                "summary": "Get total alerts generated daily grouped by category",
+                "description": "Retrieves a summary of volume alerts count grouped by date and category.",
+                "operationId": "getDailyAlertsSummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/VolumeAlertDailySummaryCategory"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/alerts/daily-subcategory-summary": {
+            "get": {
+                "tags": [
+                    "Volume Alerts"
+                ],
+                "summary": "Get total alerts generated daily grouped by subcategory",
+                "description": "Retrieves a summary of volume alerts count grouped by date and subcategory.",
+                "operationId": "getDailyAlertsSubcategorySummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/VolumeAlertDailySummarySubcategory"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1379,6 +1629,38 @@
                         "format": "int64"
                     },
                     "categoryName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "MarketHolidayRequest": {
+                "required": [
+                    "date",
+                    "holidayName"
+                ],
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "holidayName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "MarketHolidayResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "holidayName": {
                         "type": "string"
                     }
                 }
@@ -1540,13 +1822,13 @@
             "PageDailyBhav": {
                 "type": "object",
                 "properties": {
-                    "totalElements": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
                     "totalPages": {
                         "type": "integer",
                         "format": "int32"
+                    },
+                    "totalElements": {
+                        "type": "integer",
+                        "format": "int64"
                     },
                     "first": {
                         "type": "boolean"
@@ -1742,6 +2024,42 @@
                     "thresholdUsed": {
                         "type": "number",
                         "format": "double"
+                    },
+                    "percentageChange": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                }
+            },
+            "VolumeAlertDailySummaryCategory": {
+                "type": "object",
+                "properties": {
+                    "alertDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "categoryName": {
+                        "type": "string"
+                    },
+                    "alertCount": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "VolumeAlertDailySummarySubcategory": {
+                "type": "object",
+                "properties": {
+                    "alertDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "subcategoryName": {
+                        "type": "string"
+                    },
+                    "alertCount": {
+                        "type": "integer",
+                        "format": "int64"
                     }
                 }
             }

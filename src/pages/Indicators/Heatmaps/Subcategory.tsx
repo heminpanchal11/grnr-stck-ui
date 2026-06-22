@@ -12,6 +12,7 @@ interface StockData {
   totTradedVal: number;
   totTradedQty: number;
   percentChange: number;
+  date: string;
 }
 
 export const SubcategoryHeatmap: React.FC = () => {
@@ -109,7 +110,8 @@ export const SubcategoryHeatmap: React.FC = () => {
               lastTradedPrice: ltp,
               totTradedVal: bhav.totTradedVal || 0,
               totTradedQty: bhav.totTradedQty || 0,
-              percentChange: percentChange
+              percentChange: percentChange,
+              date: bhav.tradeDate || (bhav.timestamp ? bhav.timestamp.split('T')[0] : 'N/A')
             } as StockData;
           }
         } catch (e) {
@@ -125,7 +127,8 @@ export const SubcategoryHeatmap: React.FC = () => {
           lastTradedPrice: 100,
           totTradedVal: 0,
           totTradedQty: 0,
-          percentChange: 0
+          percentChange: 0,
+          date: 'N/A'
         } as StockData;
       });
 
@@ -142,14 +145,14 @@ export const SubcategoryHeatmap: React.FC = () => {
   const useMockData = () => {
     // High quality mock dataset representing the actual backend structure
     const mockData: StockData[] = [
-      { symbol: 'RELIANCE', category: 'ENERGY', subcategory: 'OIL_REFINERY', previousClsPrice: 1263.0, lastTradedPrice: 1296.4, totTradedVal: 15311601155, totTradedQty: 11988785, percentChange: 2.64 },
-      { symbol: 'TCS', category: 'IT', subcategory: 'Software Services', previousClsPrice: 2135.6, lastTradedPrice: 2161.1, totTradedVal: 4574695142, totTradedQty: 2124656, percentChange: 1.19 },
-      { symbol: 'INFY', category: 'IT', subcategory: 'Software Services', previousClsPrice: 1450.0, lastTradedPrice: 1492.5, totTradedVal: 3891450000, totTradedQty: 2608000, percentChange: 2.93 },
-      { symbol: 'WIPRO', category: 'IT', subcategory: 'Software Services', previousClsPrice: 410.5, lastTradedPrice: 402.1, totTradedVal: 1241892000, totTradedQty: 3088000, percentChange: -2.05 },
-      { symbol: 'HDFCBANK', category: 'FINANCE', subcategory: 'Private Banks', previousClsPrice: 1608.2, lastTradedPrice: 1598.5, totTradedVal: 3102941000, totTradedQty: 1941000, percentChange: -0.60 },
-      { symbol: 'ICICIBANK', category: 'FINANCE', subcategory: 'Private Banks', previousClsPrice: 910.4, lastTradedPrice: 924.2, totTradedVal: 2492083000, totTradedQty: 2707000, percentChange: 1.52 },
-      { symbol: 'SBIN', category: 'FINANCE', subcategory: 'Public Banks', previousClsPrice: 562.1, lastTradedPrice: 578.4, totTradedVal: 5920381000, totTradedQty: 10235000, percentChange: 2.90 },
-      { symbol: 'TATASTEEL', category: 'METALS', subcategory: 'Steel Products', previousClsPrice: 118.2, lastTradedPrice: 114.5, totTradedVal: 1894203000, totTradedQty: 16543000, percentChange: -3.13 }
+      { symbol: 'RELIANCE', category: 'ENERGY', subcategory: 'OIL_REFINERY', previousClsPrice: 1263.0, lastTradedPrice: 1296.4, totTradedVal: 15311601155, totTradedQty: 11988785, percentChange: 2.64, date: '2026-06-22' },
+      { symbol: 'TCS', category: 'IT', subcategory: 'Software Services', previousClsPrice: 2135.6, lastTradedPrice: 2161.1, totTradedVal: 4574695142, totTradedQty: 2124656, percentChange: 1.19, date: '2026-06-22' },
+      { symbol: 'INFY', category: 'IT', subcategory: 'Software Services', previousClsPrice: 1450.0, lastTradedPrice: 1492.5, totTradedVal: 3891450000, totTradedQty: 2608000, percentChange: 2.93, date: '2026-06-22' },
+      { symbol: 'WIPRO', category: 'IT', subcategory: 'Software Services', previousClsPrice: 410.5, lastTradedPrice: 402.1, totTradedVal: 1241892000, totTradedQty: 3088000, percentChange: -2.05, date: '2026-06-22' },
+      { symbol: 'HDFCBANK', category: 'FINANCE', subcategory: 'Private Banks', previousClsPrice: 1608.2, lastTradedPrice: 1598.5, totTradedVal: 3102941000, totTradedQty: 1941000, percentChange: -0.60, date: '2026-06-22' },
+      { symbol: 'ICICIBANK', category: 'FINANCE', subcategory: 'Private Banks', previousClsPrice: 910.4, lastTradedPrice: 924.2, totTradedVal: 2492083000, totTradedQty: 2707000, percentChange: 1.52, date: '2026-06-22' },
+      { symbol: 'SBIN', category: 'FINANCE', subcategory: 'Public Banks', previousClsPrice: 562.1, lastTradedPrice: 578.4, totTradedVal: 5920381000, totTradedQty: 10235000, percentChange: 2.90, date: '2026-06-22' },
+      { symbol: 'TATASTEEL', category: 'METALS', subcategory: 'Steel Products', previousClsPrice: 118.2, lastTradedPrice: 114.5, totTradedVal: 1894203000, totTradedQty: 16543000, percentChange: -3.13, date: '2026-06-22' }
     ];
     setData(mockData);
   };
@@ -207,6 +210,7 @@ export const SubcategoryHeatmap: React.FC = () => {
           price: stock.lastTradedPrice,
           prevPrice: stock.previousClsPrice,
           volume: stock.totTradedQty,
+          date: stock.date,
           itemStyle: {
             color: color,
             borderColor: isDark ? '#111827' : '#ffffff',
@@ -267,9 +271,12 @@ export const SubcategoryHeatmap: React.FC = () => {
 
           const sign = data.percentChange > 0 ? '+' : '';
           return `
-            <div style="font-family: var(--font-sans); padding: 4px;">
-              <strong style="font-size: 14px; color: var(--primary);">${info.name}</strong>
-              <div style="margin-top: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-family: var(--font-sans); padding: 4px; min-width: 170px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${isDark ? '#374151' : '#e2e8f0'}; padding-bottom: 6px; margin-bottom: 6px; gap: 12px;">
+                <strong style="font-size: 14px; color: var(--primary);">${info.name}</strong>
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">${data.date}</span>
+              </div>
+              <div style="font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
                 <div>Last Price: <strong>₹${data.price.toLocaleString()}</strong></div>
                 <div>Prev Close: <strong>₹${data.prevPrice.toLocaleString()}</strong></div>
                 <div>Change: <strong style="color: ${data.percentChange >= 0 ? 'var(--accent-success)' : 'var(--accent-error)'}">${sign}${data.percentChange.toFixed(2)}%</strong></div>
