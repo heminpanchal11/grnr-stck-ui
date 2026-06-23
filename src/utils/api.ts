@@ -256,6 +256,37 @@ export async function getLatestBhavForSymbol(symbol: string): Promise<any> {
   return handleResponse<any>(response);
 }
 
+export interface VolumeAlertDailySummaryCategory {
+  alertDate: string;
+  categoryName: string;
+  alertCount: number;
+}
+
+export interface VolumeAlertDailySummarySubcategory {
+  alertDate: string;
+  subcategoryName: string;
+  alertCount: number;
+}
+
+/**
+ * Fetch total alerts generated daily grouped by category.
+ * GET /api/v1/alerts/daily-summary
+ */
+export async function getDailyAlertsSummary(): Promise<VolumeAlertDailySummaryCategory[]> {
+  const response = await fetch('/api/v1/alerts/daily-summary');
+  return handleResponse<VolumeAlertDailySummaryCategory[]>(response);
+}
+
+/**
+ * Fetch total alerts generated daily grouped by subcategory.
+ * GET /api/v1/alerts/daily-subcategory-summary
+ */
+export async function getDailyAlertsSubcategorySummary(): Promise<VolumeAlertDailySummarySubcategory[]> {
+  const response = await fetch('/api/v1/alerts/daily-subcategory-summary');
+  return handleResponse<VolumeAlertDailySummarySubcategory[]>(response);
+}
+
+
 
 
 

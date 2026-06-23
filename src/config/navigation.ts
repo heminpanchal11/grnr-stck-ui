@@ -105,6 +105,11 @@ export const navigationConfig: NavigationSection[] = [
         label: 'Volume Alerts',
         icon: Bell,
         path: '/indicators/volume-alerts'
+      },
+      {
+        label: 'VA Stacked',
+        icon: Layers,
+        path: '/indicators/va-stacked'
       }
     ]
   },

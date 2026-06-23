@@ -11,6 +11,7 @@ import { Categories } from './pages/Markets/NSE/Categories';
 import { Subcategories } from './pages/Markets/NSE/Subcategories';
 import { SubcategoryHeatmap } from './pages/Indicators/Heatmaps/Subcategory';
 import { VolumeAlerts } from './pages/Indicators/VolumeAlerts';
+import { VAStacked } from './pages/Indicators/VAStacked';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
               <Route path="subcategory" element={<SubcategoryHeatmap />} />
             </Route>
             <Route path="volume-alerts" element={<VolumeAlerts />} />
+            <Route path="va-stacked" element={<VAStacked />} />
           </Route>
           
           {/* Settings submenu pages */}
