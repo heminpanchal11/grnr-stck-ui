@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Volume2, AlertTriangle, RefreshCw, Info, Search } from 'lucide-react';
 import styles from '../pages.module.css';
-import { getAlerts, type VolumeAlertResponse } from '../../utils/api';
+import { getCategories, searchAlerts, type VolumeAlertResponse, type SearchAlertsParams } from '../../utils/api';
 
 export const VolumeAlerts: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -10,23 +10,44 @@ export const VolumeAlerts: React.FC = () => {
 
   // Search, Filter and Sort states
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [sortField, setSortField] = useState<string>('alertDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Dynamically compute unique categories for the filter select
-  const uniqueCategories = React.useMemo(() => {
-    const categories = new Set<string>();
-    alerts.forEach(alert => {
-      const catName = alert.stockSymbol?.subcategory?.category?.name;
-      if (catName) {
-        categories.add(catName);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [totalElements, setTotalElements] = useState<number>(0);
+
+  // Stats / categories states
+  const [criticalCount, setCriticalCount] = useState<number>(0);
+  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Load categories list on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories();
+        setCategoriesList(cats.map(c => c.name).sort());
+      } catch (e) {
+        console.warn('Failed to load categories, using default categories list.', e);
+        setCategoriesList(['ENERGY', 'FINANCE', 'IT', 'METALS']);
       }
-    });
-    return Array.from(categories).sort();
-  }, [alerts]);
+    };
+    loadCategories();
+  }, []);
 
   // Handle click sorting
   const handleSort = (field: string) => {
@@ -34,8 +55,9 @@ export const VolumeAlerts: React.FC = () => {
       setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection('desc'); // default to desc for metrics/dates
     }
+    setCurrentPage(0);
   };
 
   // Render sorting arrows
@@ -48,91 +70,67 @@ export const VolumeAlerts: React.FC = () => {
       <span style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '11px' }}>▼</span>;
   };
 
-  // Memoized filter and sort of the alerts dataset
-  const filteredAndSortedAlerts = React.useMemo(() => {
-    // 1. Filter
-    let result = alerts.filter(alert => {
-      // Search query
-      if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase();
-        const sym = alert.stockSymbol?.symbol?.toLowerCase() || '';
-        const cat = alert.stockSymbol?.subcategory?.category?.name?.toLowerCase() || '';
-        const subcat = alert.stockSymbol?.subcategory?.name?.toLowerCase() || '';
-        if (!sym.includes(q) && !cat.includes(q) && !subcat.includes(q)) {
-          return false;
-        }
-      }
-
-      // Category filter
-      if (selectedCategory !== 'all') {
-        const cat = alert.stockSymbol?.subcategory?.category?.name;
-        if (cat !== selectedCategory) {
-          return false;
-        }
-      }
-
-      // Severity filter
-      if (selectedSeverity !== 'all') {
-        const severity = getAlertSeverity(alert.multiplier);
-        if (severity !== selectedSeverity) {
-          return false;
-        }
-      }
-
-      // Date filter
-      if (selectedDate !== '') {
-        if (alert.alertDate !== selectedDate) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // 2. Sort
-    result.sort((a, b) => {
-      let comparison = 0;
-      if (sortField === 'symbol') {
-        const aVal = a.stockSymbol?.symbol || '';
-        const bVal = b.stockSymbol?.symbol || '';
-        comparison = aVal.localeCompare(bVal);
-      } else if (sortField === 'averageVolume') {
-        comparison = a.averageVolume - b.averageVolume;
-      } else if (sortField === 'latestVolume') {
-        comparison = a.latestVolume - b.latestVolume;
-      } else if (sortField === 'multiplier') {
-        comparison = a.multiplier - b.multiplier;
-      } else if (sortField === 'percentageChange') {
-        const aVal = a.percentageChange ?? 0;
-        const bVal = b.percentageChange ?? 0;
-        comparison = aVal - bVal;
-      } else if (sortField === 'alertDate') {
-        comparison = a.alertDate.localeCompare(b.alertDate);
-      } else if (sortField === 'severity') {
-        const getSeverityWeight = (m: number) => {
-          const s = getAlertSeverity(m);
-          if (s === 'critical') return 3;
-          if (s === 'warning') return 2;
-          return 1;
-        };
-        comparison = getSeverityWeight(a.multiplier) - getSeverityWeight(b.multiplier);
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return result;
-  }, [alerts, searchQuery, selectedCategory, selectedSeverity, selectedDate, sortField, sortDirection]);
-
+  const getAlertSeverity = (multiplier: number) => {
+    if (multiplier >= 3.0) return 'critical';
+    if (multiplier >= 2.0) return 'warning';
+    return 'info';
+  };
 
   const fetchAlerts = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getAlerts();
-      setAlerts(data || []);
+      // Map sort fields
+      let sortBy = 'alertDate';
+      if (sortField === 'symbol') {
+        sortBy = 'stockSymbol.symbol';
+      } else if (sortField === 'severity') {
+        sortBy = 'multiplier';
+      } else if (sortField === 'averageVolume' || sortField === 'latestVolume' || sortField === 'multiplier' || sortField === 'percentageChange') {
+        sortBy = sortField;
+      }
+
+      // Map severity to minMultiplier
+      let minMultiplier: number | undefined = undefined;
+      if (selectedSeverity === 'critical') {
+        minMultiplier = 3.0;
+      } else if (selectedSeverity === 'warning') {
+        minMultiplier = 2.0;
+      }
+
+      const params: SearchAlertsParams = {
+        symbol: debouncedSearchQuery ? debouncedSearchQuery.trim() : undefined,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        startDate: selectedDate || undefined,
+        endDate: selectedDate || undefined,
+        minMultiplier,
+        page: currentPage,
+        size: pageSize,
+        sortBy,
+        sortDir: sortDirection
+      };
+
+      const criticalParams: SearchAlertsParams = {
+        symbol: debouncedSearchQuery ? debouncedSearchQuery.trim() : undefined,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        startDate: selectedDate || undefined,
+        endDate: selectedDate || undefined,
+        minMultiplier: 3.0,
+        page: 0,
+        size: 1
+      };
+
+      const [data, criticalData] = await Promise.all([
+        searchAlerts(params),
+        searchAlerts(criticalParams)
+      ]);
+
+      setAlerts(data.content || []);
+      setTotalPages(data.totalPages || 0);
+      setTotalElements(data.totalElements || 0);
+      setCriticalCount(criticalData.totalElements || 0);
     } catch (e: any) {
-      console.warn('Backend alerts fetch failed, falling back to mock dataset.', e);
+      console.warn('Backend alerts search failed, falling back to mock dataset.', e);
       setError(e.message || 'Failed to retrieve volume alerts from backend.');
       useMockData();
     } finally {
@@ -227,12 +225,89 @@ export const VolumeAlerts: React.FC = () => {
         percentageChange: -0.85
       }
     ];
-    setAlerts(mockAlerts);
+
+    let filtered = mockAlerts.filter((alert) => {
+      if (debouncedSearchQuery) {
+        const query = debouncedSearchQuery.toLowerCase();
+        const symbolMatch = alert.stockSymbol?.symbol?.toLowerCase().includes(query);
+        const catMatch = alert.stockSymbol?.subcategory?.category?.name?.toLowerCase().includes(query);
+        const subcatMatch = alert.stockSymbol?.subcategory?.name?.toLowerCase().includes(query);
+        if (!symbolMatch && !catMatch && !subcatMatch) return false;
+      }
+      if (selectedCategory !== 'all') {
+        if (alert.stockSymbol?.subcategory?.category?.name !== selectedCategory) return false;
+      }
+      if (selectedDate !== '') {
+        if (alert.alertDate !== selectedDate) return false;
+      }
+      if (selectedSeverity !== 'all') {
+        const severity = getAlertSeverity(alert.multiplier);
+        if (severity !== selectedSeverity) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'symbol') {
+        const aVal = a.stockSymbol?.symbol || '';
+        const bVal = b.stockSymbol?.symbol || '';
+        comparison = aVal.localeCompare(bVal);
+      } else if (sortField === 'averageVolume') {
+        comparison = a.averageVolume - b.averageVolume;
+      } else if (sortField === 'latestVolume') {
+        comparison = a.latestVolume - b.latestVolume;
+      } else if (sortField === 'multiplier') {
+        comparison = a.multiplier - b.multiplier;
+      } else if (sortField === 'percentageChange') {
+        comparison = (a.percentageChange ?? 0) - (b.percentageChange ?? 0);
+      } else if (sortField === 'alertDate') {
+        comparison = a.alertDate.localeCompare(b.alertDate);
+      } else if (sortField === 'severity') {
+        const getSeverityWeight = (m: number) => {
+          const s = getAlertSeverity(m);
+          if (s === 'critical') return 3;
+          if (s === 'warning') return 2;
+          return 1;
+        };
+        comparison = getSeverityWeight(a.multiplier) - getSeverityWeight(b.multiplier);
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    const total = filtered.length;
+    const pages = Math.ceil(total / pageSize);
+    const startIdx = currentPage * pageSize;
+    const paginated = filtered.slice(startIdx, startIdx + pageSize);
+
+    const critical = filtered.filter(a => getAlertSeverity(a.multiplier) === 'critical').length;
+
+    setAlerts(paginated);
+    setTotalPages(pages);
+    setTotalElements(total);
+    setCriticalCount(critical);
   };
 
+  // Reset page to 0 when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [debouncedSearchQuery, selectedCategory, selectedSeverity, selectedDate]);
+
+  // Fetch when page, size, sorting or debounced filters change
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [currentPage, pageSize, debouncedSearchQuery, selectedCategory, selectedSeverity, selectedDate, sortField, sortDirection]);
+
+  // Client-side display filtering for Warning/Info severity ranges (if active)
+  const displayAlerts = React.useMemo(() => {
+    if (selectedSeverity === 'warning') {
+      return alerts.filter(a => getAlertSeverity(a.multiplier) === 'warning');
+    }
+    if (selectedSeverity === 'info') {
+      return alerts.filter(a => getAlertSeverity(a.multiplier) === 'info');
+    }
+    return alerts;
+  }, [alerts, selectedSeverity]);
 
   const formatVolume = (vol: number) => {
     if (vol >= 1000000) {
@@ -242,12 +317,6 @@ export const VolumeAlerts: React.FC = () => {
       return `${(vol / 1000).toFixed(1)}K`;
     }
     return vol.toLocaleString();
-  };
-
-  const getAlertSeverity = (multiplier: number) => {
-    if (multiplier >= 3.0) return 'critical';
-    if (multiplier >= 2.0) return 'warning';
-    return 'info';
   };
 
   return (
@@ -263,7 +332,7 @@ export const VolumeAlerts: React.FC = () => {
         <div className={styles.card} style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div className={styles.statsLabel}>Total Spike Alerts</div>
-            <div className={styles.statsVal} style={{ fontSize: '24px', marginTop: '4px' }}>{alerts.length}</div>
+            <div className={styles.statsVal} style={{ fontSize: '24px', marginTop: '4px' }}>{totalElements}</div>
           </div>
           <div className={styles.statsIconContainer} style={{ padding: '8px' }}>
             <Bell size={18} />
@@ -274,7 +343,7 @@ export const VolumeAlerts: React.FC = () => {
           <div>
             <div className={styles.statsLabel}>Critical ( &gt; 3x Avg )</div>
             <div className={styles.statsVal} style={{ fontSize: '24px', color: 'var(--accent-error)', marginTop: '4px' }}>
-              {alerts.filter(a => getAlertSeverity(a.multiplier) === 'critical').length}
+              {criticalCount}
             </div>
           </div>
           <div className={styles.statsIconContainer} style={{ padding: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-error)' }}>
@@ -381,7 +450,7 @@ export const VolumeAlerts: React.FC = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
             <option value="all">All Sectors</option>
-            {uniqueCategories.map(cat => (
+            {categoriesList.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -487,8 +556,8 @@ export const VolumeAlerts: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedAlerts.length > 0 ? (
-                  filteredAndSortedAlerts.map((alert) => {
+                {displayAlerts.length > 0 ? (
+                  displayAlerts.map((alert) => {
                     const severity = getAlertSeverity(alert.multiplier);
                     const symInfo = alert.stockSymbol;
                     const subcatName = symInfo?.subcategory?.name || 'N/A';
@@ -555,6 +624,112 @@ export const VolumeAlerts: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '20px',
+            padding: '12px 16px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Showing <strong>{totalElements === 0 ? 0 : currentPage * pageSize + 1}</strong> to <strong>{Math.min((currentPage + 1) * pageSize, totalElements)}</strong> of <strong>{totalElements}</strong> alerts
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Show:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(0);
+                  }}
+                  className={styles.filterSelect}
+                  style={{ padding: '4px 8px', fontSize: '12px', width: 'auto', minWidth: '60px', height: 'auto' }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+                className={styles.input}
+                style={{
+                  padding: '6px 12px',
+                  cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 0 ? 0.5 : 1,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  height: 'auto'
+                }}
+              >
+                Previous
+              </button>
+
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => {
+                const isSelected = i === currentPage;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCurrentPage(i)}
+                    className={styles.input}
+                    style={{
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-tertiary)',
+                      borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                      color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                      height: 'auto'
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                disabled={currentPage === totalPages - 1}
+                className={styles.input}
+                style={{
+                  padding: '6px 12px',
+                  cursor: currentPage === totalPages - 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages - 1 ? 0.5 : 1,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  height: 'auto'
+                }}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

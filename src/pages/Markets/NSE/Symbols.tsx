@@ -29,6 +29,8 @@ import {
 
 interface SymbolRowProps {
   sym: StockSymbolResponse;
+  bhavData: any | null;
+  loading: boolean;
   isEditing: boolean;
   editingSymbolName: string;
   setEditingSymbolName: (val: string) => void;
@@ -48,6 +50,8 @@ interface SymbolRowProps {
 
 const SymbolRow: React.FC<SymbolRowProps> = ({
   sym,
+  bhavData,
+  loading,
   isEditing,
   editingSymbolName,
   setEditingSymbolName,
@@ -64,27 +68,6 @@ const SymbolRow: React.FC<SymbolRowProps> = ({
   setEditingOldSymbolName,
   handleEditCategoryChange
 }) => {
-  const [bhavData, setBhavData] = useState<any | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    let active = true;
-    const fetchBhav = async () => {
-      setLoading(true);
-      try {
-        const data = await getLatestBhavForSymbol(sym.symbol);
-        if (active) setBhavData(data);
-      } catch (e) {
-        console.warn(`Failed to fetch latest bhav for ${sym.symbol}`, e);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    fetchBhav();
-    return () => {
-      active = false;
-    };
-  }, [sym.symbol]);
 
   const renderBhavCells = () => {
     if (loading) {
@@ -350,6 +333,10 @@ export const Symbols: React.FC = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Batch Bhav Data state
+  const [bhavDataMap, setBhavDataMap] = useState<Record<string, any>>({});
+  const [bhavLoading, setBhavLoading] = useState<boolean>(false);
+
   // Fetch symbols, categories, and subcategories
   const fetchData = async () => {
     setLoading(true);
@@ -383,9 +370,43 @@ export const Symbols: React.FC = () => {
     }
   };
 
+  const fetchBhavDataForSymbols = async (symbols: StockSymbolResponse[]) => {
+    if (!symbols || symbols.length === 0) return;
+    setBhavLoading(true);
+    try {
+      const symbolNames = symbols.map(s => s.symbol).join(',');
+      const data = await getLatestBhavForSymbol(symbolNames);
+      const map: Record<string, any> = {};
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          if (item && item.symbol) {
+            map[item.symbol.toUpperCase()] = item;
+          }
+        });
+      } else if (data && typeof data === 'object') {
+        if (data.symbol) {
+          map[data.symbol.toUpperCase()] = data;
+        }
+      }
+      setBhavDataMap(map);
+    } catch (err) {
+      console.warn('Failed to fetch batch bhav data', err);
+    } finally {
+      setBhavLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (symbolsList.length > 0) {
+      fetchBhavDataForSymbols(symbolsList);
+    } else {
+      setBhavDataMap({});
+    }
+  }, [symbolsList]);
 
   // Show auto-dismiss success toasts
   const showSuccess = (msg: string) => {
@@ -493,6 +514,9 @@ export const Symbols: React.FC = () => {
     try {
       await getLatestBhav();
       showSuccess('Latest bhav values fetched successfully!');
+      if (symbolsList.length > 0) {
+        await fetchBhavDataForSymbols(symbolsList);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to trigger latest bhav scrapper.');
     } finally {
@@ -1153,6 +1177,8 @@ export const Symbols: React.FC = () => {
                                         <SymbolRow
                                           key={sym.id}
                                           sym={sym}
+                                          bhavData={bhavDataMap[sym.symbol.toUpperCase()] || null}
+                                          loading={bhavLoading}
                                           isEditing={editingId === sym.id}
                                           editingSymbolName={editingSymbolName}
                                           setEditingSymbolName={setEditingSymbolName}

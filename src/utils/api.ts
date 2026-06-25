@@ -235,6 +235,61 @@ export async function getAlerts(): Promise<VolumeAlertResponse[]> {
   return handleResponse<VolumeAlertResponse[]>(response);
 }
 
+export interface PageableObject {
+  unpaged: boolean;
+  paged: boolean;
+  pageNumber: number;
+  pageSize: number;
+  offset: number;
+}
+
+export interface PageVolumeAlert {
+  totalPages: number;
+  totalElements: number;
+  pageable: PageableObject;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  size: number;
+  content: VolumeAlertResponse[];
+  number: number;
+  empty: boolean;
+}
+
+export interface SearchAlertsParams {
+  symbol?: string;
+  category?: string;
+  subcategory?: string;
+  startDate?: string;
+  endDate?: string;
+  minMultiplier?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+}
+
+/**
+ * Search and filter volume alerts.
+ * GET /api/v1/alerts/search
+ */
+export async function searchAlerts(params: SearchAlertsParams): Promise<PageVolumeAlert> {
+  const queryParams = new URLSearchParams();
+  if (params.symbol) queryParams.append('symbol', params.symbol);
+  if (params.category) queryParams.append('category', params.category);
+  if (params.subcategory) queryParams.append('subcategory', params.subcategory);
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.minMultiplier !== undefined) queryParams.append('minMultiplier', params.minMultiplier.toString());
+  if (params.page !== undefined) queryParams.append('page', params.page.toString());
+  if (params.size !== undefined) queryParams.append('size', params.size.toString());
+  if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+  if (params.sortDir) queryParams.append('sortDir', params.sortDir);
+
+  const response = await fetch(`/api/v1/alerts/search?${queryParams.toString()}`);
+  return handleResponse<PageVolumeAlert>(response);
+}
+
 /**
  * Fetch latest bhav records for all symbols.
  * GET /api/v1/scrapper/bhav/latest

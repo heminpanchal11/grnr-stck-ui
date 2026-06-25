@@ -1340,14 +1340,14 @@
                 "tags": [
                     "Stock Bhav Data"
                 ],
-                "summary": "Get latest bhav data of a symbol",
-                "description": "Retrieves the single latest stored price record (from latest_bhav table) for a given stock symbol.",
+                "summary": "Get latest bhav data of a symbol or multiple comma-separated symbols",
+                "description": "Retrieves the single latest stored price record (from latest_bhav table) for a given stock symbol or multiple comma-separated symbols.",
                 "operationId": "getLatestBhav_1",
                 "parameters": [
                     {
                         "name": "symbol",
                         "in": "path",
-                        "description": "Stock symbol (e.g. RELIANCE)",
+                        "description": "Stock symbol or comma-separated symbols (e.g. RELIANCE or THYROCARE,RELIANCE)",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -1360,7 +1360,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/LatestBhav"
+                                    "type": "object"
                                 }
                             }
                         }
@@ -1370,7 +1370,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/LatestBhav"
+                                    "type": "object"
                                 }
                             }
                         }
@@ -1508,6 +1508,129 @@
                 }
             }
         },
+        "/api/v1/alerts/search": {
+            "get": {
+                "tags": [
+                    "Volume Alerts"
+                ],
+                "summary": "Search and filter volume alerts",
+                "description": "Retrieves a paginated list of volume alerts filtered by symbol, category, subcategory, date range, and minimum multiplier, with custom sorting.",
+                "operationId": "searchAlerts",
+                "parameters": [
+                    {
+                        "name": "symbol",
+                        "in": "query",
+                        "description": "Stock symbol (e.g. RELIANCE)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Category name (e.g. TECHNOLOGY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "subcategory",
+                        "in": "query",
+                        "description": "Subcategory name (e.g. OIL REFINERY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "description": "Start date (yyyy-MM-dd)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "description": "End date (yyyy-MM-dd)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "minMultiplier",
+                        "in": "query",
+                        "description": "Minimum multiplier (e.g. 1.5)",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "double"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Zero-based page index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "sortBy",
+                        "in": "query",
+                        "description": "Property to sort by",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "alertDate"
+                        }
+                    },
+                    {
+                        "name": "sortDir",
+                        "in": "query",
+                        "description": "Sort direction (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved filtered volume alerts",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PageVolumeAlert"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/alerts/daily-summary": {
             "get": {
                 "tags": [
@@ -1550,6 +1673,34 @@
                                     "type": "array",
                                     "items": {
                                         "$ref": "#/components/schemas/VolumeAlertDailySummarySubcategory"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/alerts/daily-stacked-summary": {
+            "get": {
+                "tags": [
+                    "Volume Alerts"
+                ],
+                "summary": "Get daily alert counts in a format optimized for stacked bar charts",
+                "description": "Returns a list of day-wise records, where each day contains counts for each category (e.g. {date: '2026-06-22', ENERGY: 5, FINANCE: 2})",
+                "operationId": "getDailyStackedSummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object"
+                                        }
                                     }
                                 }
                             }
@@ -1830,6 +1981,9 @@
                         "type": "integer",
                         "format": "int64"
                     },
+                    "pageable": {
+                        "$ref": "#/components/schemas/PageableObject"
+                    },
                     "first": {
                         "type": "boolean"
                     },
@@ -1839,9 +1993,6 @@
                     "numberOfElements": {
                         "type": "integer",
                         "format": "int32"
-                    },
-                    "pageable": {
-                        "$ref": "#/components/schemas/PageableObject"
                     },
                     "size": {
                         "type": "integer",
@@ -1871,6 +2022,9 @@
             "PageableObject": {
                 "type": "object",
                 "properties": {
+                    "unpaged": {
+                        "type": "boolean"
+                    },
                     "paged": {
                         "type": "boolean"
                     },
@@ -1881,9 +2035,6 @@
                     "pageSize": {
                         "type": "integer",
                         "format": "int32"
-                    },
-                    "unpaged": {
-                        "type": "boolean"
                     },
                     "offset": {
                         "type": "integer",
@@ -1914,84 +2065,6 @@
                     },
                     "ignoreCase": {
                         "type": "boolean"
-                    }
-                }
-            },
-            "LatestBhav": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "stockSymbol": {
-                        "$ref": "#/components/schemas/StockSymbol"
-                    },
-                    "series": {
-                        "type": "string"
-                    },
-                    "tradeDate": {
-                        "type": "string",
-                        "format": "date"
-                    },
-                    "previousClsPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "openingPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "tradeHighPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "tradeLowPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "lastTradedPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "closingPrice": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "vwap": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "totTradedQty": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "totTradedVal": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "totalTrades": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "timestamp": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "copDelivQty": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "copDelivPerc": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "symbol_id": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "symbol": {
-                        "type": "string"
                     }
                 }
             },
@@ -2028,6 +2101,55 @@
                     "percentageChange": {
                         "type": "number",
                         "format": "double"
+                    }
+                }
+            },
+            "PageVolumeAlert": {
+                "type": "object",
+                "properties": {
+                    "totalPages": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "totalElements": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "pageable": {
+                        "$ref": "#/components/schemas/PageableObject"
+                    },
+                    "first": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "type": "boolean"
+                    },
+                    "numberOfElements": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "content": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/VolumeAlert"
+                        }
+                    },
+                    "number": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "sort": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SortObject"
+                        }
+                    },
+                    "empty": {
+                        "type": "boolean"
                     }
                 }
             },

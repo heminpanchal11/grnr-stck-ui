@@ -92,47 +92,60 @@ export const SubcategoryHeatmap: React.FC = () => {
         return;
       }
 
-      // 2. Fetch latest pricing for each symbol
-      const bhavPromises = symbols.map(async (sym: any) => {
-        try {
-          const res = await fetch(`/api/v1/bhav/${sym.symbol}/latest`);
-          if (res.ok) {
-            const bhav = await res.json();
-            const prev = bhav.previousClsPrice || 0;
-            const ltp = bhav.lastTradedPrice || 0;
-            const percentChange = prev > 0 ? ((ltp - prev) / prev) * 100 : 0;
-            
-            return {
-              symbol: sym.symbol,
-              category: sym.category || 'OTHER',
-              subcategory: sym.subcategory || 'Miscellaneous',
-              previousClsPrice: prev,
-              lastTradedPrice: ltp,
-              totTradedVal: bhav.totTradedVal || 0,
-              totTradedQty: bhav.totTradedQty || 0,
-              percentChange: percentChange,
-              date: bhav.tradeDate || (bhav.timestamp ? bhav.timestamp.split('T')[0] : 'N/A')
-            } as StockData;
-          }
-        } catch (e) {
-          console.error(`Error fetching price for ${sym.symbol}:`, e);
+      // 2. Fetch latest pricing for all symbols in batch
+      const symbolNames = symbols.map((sym: any) => sym.symbol).join(',');
+      const res = await fetch(`/api/v1/bhav/${encodeURIComponent(symbolNames)}/latest`);
+      
+      let bhavList: any[] = [];
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json)) {
+          bhavList = json;
+        } else if (json && typeof json === 'object') {
+          bhavList = [json];
         }
-        
-        // Return placeholder if individual fetch failed
-        return {
-          symbol: sym.symbol,
-          category: sym.category || 'OTHER',
-          subcategory: sym.subcategory || 'Miscellaneous',
-          previousClsPrice: 100,
-          lastTradedPrice: 100,
-          totTradedVal: 0,
-          totTradedQty: 0,
-          percentChange: 0,
-          date: 'N/A'
-        } as StockData;
+      }
+
+      const bhavMap: Record<string, any> = {};
+      bhavList.forEach(bhav => {
+        if (bhav && bhav.symbol) {
+          bhavMap[bhav.symbol.toUpperCase()] = bhav;
+        }
       });
 
-      const results = (await Promise.all(bhavPromises)).filter((x): x is StockData => x !== null);
+      const results = symbols.map((sym: any) => {
+        const bhav = bhavMap[sym.symbol.toUpperCase()];
+        if (bhav) {
+          const prev = bhav.previousClsPrice || 0;
+          const ltp = bhav.lastTradedPrice || 0;
+          const percentChange = prev > 0 ? ((ltp - prev) / prev) * 100 : 0;
+          
+          return {
+            symbol: sym.symbol,
+            category: sym.category || 'OTHER',
+            subcategory: sym.subcategory || 'Miscellaneous',
+            previousClsPrice: prev,
+            lastTradedPrice: ltp,
+            totTradedVal: bhav.totTradedVal || 0,
+            totTradedQty: bhav.totTradedQty || 0,
+            percentChange: percentChange,
+            date: bhav.tradeDate || (bhav.timestamp ? bhav.timestamp.split('T')[0] : 'N/A')
+          } as StockData;
+        } else {
+          return {
+            symbol: sym.symbol,
+            category: sym.category || 'OTHER',
+            subcategory: sym.subcategory || 'Miscellaneous',
+            previousClsPrice: 100,
+            lastTradedPrice: 100,
+            totTradedVal: 0,
+            totTradedQty: 0,
+            percentChange: 0,
+            date: 'N/A'
+          } as StockData;
+        }
+      });
+
       setData(results);
     } catch (e: any) {
       console.warn('Backend fetch failed, falling back to mock dataset.', e);
