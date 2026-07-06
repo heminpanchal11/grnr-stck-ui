@@ -102,6 +102,11 @@ export const navigationConfig: NavigationSection[] = [
         ]
       },
       {
+        label: 'Tagboard',
+        icon: Layers,
+        path: '/indicators/tagboard'
+      },
+      {
         label: 'Volume Alerts',
         icon: Bell,
         path: '/indicators/volume-alerts'

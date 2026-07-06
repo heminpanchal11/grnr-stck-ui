@@ -341,6 +341,100 @@ export async function getDailyAlertsSubcategorySummary(): Promise<VolumeAlertDai
   return handleResponse<VolumeAlertDailySummarySubcategory[]>(response);
 }
 
+export interface TagBoardRequest {
+  name: string;
+  symbols: string[];
+}
+
+export interface TagBoardResponse {
+  id: number;
+  name: string;
+  symbols: StockSymbolResponse[];
+}
+
+export interface DailyBhav {
+  id: number;
+  stockSymbol: StockSymbolResponse;
+  series: string;
+  tradeDate: string;
+  previousClsPrice: number;
+  openingPrice: number;
+  tradeHighPrice: number;
+  tradeLowPrice: number;
+  lastTradedPrice: number;
+  closingPrice: number;
+  totTradedQty: number;
+  totTradedVal: number;
+}
+
+/**
+ * Fetch all tag boards from the backend.
+ * GET /api/v1/tag-boards
+ */
+export async function getTagBoards(): Promise<TagBoardResponse[]> {
+  const response = await fetch('/api/v1/tag-boards');
+  return handleResponse<TagBoardResponse[]>(response);
+}
+
+/**
+ * Create a new tag board.
+ * POST /api/v1/tag-boards
+ */
+export async function createTagBoard(request: TagBoardRequest): Promise<TagBoardResponse> {
+  const response = await fetch('/api/v1/tag-boards', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  return handleResponse<TagBoardResponse>(response);
+}
+
+/**
+ * Update an existing tag board by ID.
+ * PUT /api/v1/tag-boards/{id}
+ */
+export async function updateTagBoard(id: number, request: TagBoardRequest): Promise<TagBoardResponse> {
+  const response = await fetch(`/api/v1/tag-boards/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+  return handleResponse<TagBoardResponse>(response);
+}
+
+/**
+ * Delete a tag board by ID.
+ * DELETE /api/v1/tag-boards/{id}
+ */
+export async function deleteTagBoard(id: number): Promise<void> {
+  const response = await fetch(`/api/v1/tag-boards/${id}`, {
+    method: 'DELETE',
+  });
+  return handleResponse<void>(response);
+}
+
+/**
+ * Fetch historic bhav data for a specific stock symbol.
+ * GET /api/v1/bhav/{symbol}/historic
+ */
+export async function getHistoricBhav(symbol: string, startDate?: string, endDate?: string): Promise<DailyBhav[]> {
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.append('startDate', startDate);
+  if (endDate) queryParams.append('endDate', endDate);
+  
+  const url = queryParams.toString() 
+    ? `/api/v1/bhav/${encodeURIComponent(symbol)}/historic?${queryParams.toString()}`
+    : `/api/v1/bhav/${encodeURIComponent(symbol)}/historic`;
+    
+  const response = await fetch(url);
+  return handleResponse<DailyBhav[]>(response);
+}
+
+
 
 
 

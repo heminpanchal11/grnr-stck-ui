@@ -47,9 +47,144 @@
         {
             "name": "Stock Bhav Data",
             "description": "Endpoints for serving latest and historic bhav data of stock symbols"
+        },
+        {
+            "name": "TagBoard",
+            "description": "Endpoints for managing tag boards"
         }
     ],
     "paths": {
+        "/api/v1/tag-boards/{id}": {
+            "get": {
+                "tags": [
+                    "TagBoard"
+                ],
+                "summary": "Get a tag board by ID",
+                "description": "Retrieves details of a specific tag board using its ID.",
+                "operationId": "getTagBoard",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved tag board details",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Tag board not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "TagBoard"
+                ],
+                "summary": "Update a tag board by ID",
+                "description": "Updates the name or associated symbols of an existing tag board.",
+                "operationId": "updateTagBoard",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagBoardRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "404": {
+                        "description": "Tag board not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Tag board updated successfully",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "TagBoard"
+                ],
+                "summary": "Delete a tag board by ID",
+                "description": "Deletes a tag board using its ID.",
+                "operationId": "deleteTagBoard",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Tag board deleted successfully"
+                    },
+                    "404": {
+                        "description": "Tag board not found"
+                    }
+                }
+            }
+        },
         "/api/v1/symbols/{symbol}": {
             "get": {
                 "tags": [
@@ -567,6 +702,71 @@
                     },
                     "204": {
                         "description": "Category deleted successfully"
+                    }
+                }
+            }
+        },
+        "/api/v1/tag-boards": {
+            "get": {
+                "tags": [
+                    "TagBoard"
+                ],
+                "summary": "Get all tag boards",
+                "description": "Retrieves a list of all tag boards.",
+                "operationId": "getAllTagBoards",
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved list of tag boards",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TagBoardResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "TagBoard"
+                ],
+                "summary": "Create a new tag board",
+                "description": "Creates a new tag board with the specified name and associated symbols.",
+                "operationId": "createTagBoard",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TagBoardRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Invalid input data or duplicate name",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Tag board created successfully",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagBoardResponse"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1340,14 +1540,14 @@
                 "tags": [
                     "Stock Bhav Data"
                 ],
-                "summary": "Get latest bhav data of a symbol or multiple comma-separated symbols",
-                "description": "Retrieves the single latest stored price record (from latest_bhav table) for a given stock symbol or multiple comma-separated symbols.",
+                "summary": "Get latest bhav data of a symbol",
+                "description": "Retrieves the single latest stored price record (from latest_bhav table) for a given stock symbol.",
                 "operationId": "getLatestBhav_1",
                 "parameters": [
                     {
                         "name": "symbol",
                         "in": "path",
-                        "description": "Stock symbol or comma-separated symbols (e.g. RELIANCE or THYROCARE,RELIANCE)",
+                        "description": "Stock symbol (e.g. RELIANCE)",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -1360,7 +1560,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/LatestBhav"
                                 }
                             }
                         }
@@ -1370,7 +1570,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/LatestBhav"
                                 }
                             }
                         }
@@ -1508,129 +1708,6 @@
                 }
             }
         },
-        "/api/v1/alerts/search": {
-            "get": {
-                "tags": [
-                    "Volume Alerts"
-                ],
-                "summary": "Search and filter volume alerts",
-                "description": "Retrieves a paginated list of volume alerts filtered by symbol, category, subcategory, date range, and minimum multiplier, with custom sorting.",
-                "operationId": "searchAlerts",
-                "parameters": [
-                    {
-                        "name": "symbol",
-                        "in": "query",
-                        "description": "Stock symbol (e.g. RELIANCE)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "description": "Category name (e.g. TECHNOLOGY)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "subcategory",
-                        "in": "query",
-                        "description": "Subcategory name (e.g. OIL REFINERY)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "startDate",
-                        "in": "query",
-                        "description": "Start date (yyyy-MM-dd)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "endDate",
-                        "in": "query",
-                        "description": "End date (yyyy-MM-dd)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "minMultiplier",
-                        "in": "query",
-                        "description": "Minimum multiplier (e.g. 1.5)",
-                        "required": false,
-                        "schema": {
-                            "type": "number",
-                            "format": "double"
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "description": "Zero-based page index",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "default": 0
-                        }
-                    },
-                    {
-                        "name": "size",
-                        "in": "query",
-                        "description": "Page size",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "default": 10
-                        }
-                    },
-                    {
-                        "name": "sortBy",
-                        "in": "query",
-                        "description": "Property to sort by",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "alertDate"
-                        }
-                    },
-                    {
-                        "name": "sortDir",
-                        "in": "query",
-                        "description": "Sort direction (asc or desc)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "desc"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully retrieved filtered volume alerts",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/PageVolumeAlert"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/alerts/daily-summary": {
             "get": {
                 "tags": [
@@ -1712,14 +1789,31 @@
     },
     "components": {
         "schemas": {
-            "StockSymbolRequest": {
+            "TagBoardRequest": {
                 "required": [
-                    "category",
-                    "subcategory",
-                    "symbol"
+                    "name"
                 ],
                 "type": "object",
                 "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "symbols": {
+                        "uniqueItems": true,
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "StockSymbolResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
                     "symbol": {
                         "type": "string"
                     },
@@ -1731,13 +1825,33 @@
                     }
                 }
             },
-            "StockSymbolResponse": {
+            "TagBoardResponse": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "integer",
                         "format": "int64"
                     },
+                    "name": {
+                        "type": "string"
+                    },
+                    "symbols": {
+                        "uniqueItems": true,
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StockSymbolResponse"
+                        }
+                    }
+                }
+            },
+            "StockSymbolRequest": {
+                "required": [
+                    "category",
+                    "subcategory",
+                    "symbol"
+                ],
+                "type": "object",
+                "properties": {
                     "symbol": {
                         "type": "string"
                     },
@@ -1923,12 +2037,12 @@
                         "type": "number",
                         "format": "double"
                     },
+                    "symbol": {
+                        "type": "string"
+                    },
                     "symbol_id": {
                         "type": "integer",
                         "format": "int64"
-                    },
-                    "symbol": {
-                        "type": "string"
                     }
                 }
             },
@@ -1973,24 +2087,11 @@
             "PageDailyBhav": {
                 "type": "object",
                 "properties": {
-                    "totalPages": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
                     "totalElements": {
                         "type": "integer",
                         "format": "int64"
                     },
-                    "pageable": {
-                        "$ref": "#/components/schemas/PageableObject"
-                    },
-                    "first": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "type": "boolean"
-                    },
-                    "numberOfElements": {
+                    "totalPages": {
                         "type": "integer",
                         "format": "int32"
                     },
@@ -2014,6 +2115,19 @@
                             "$ref": "#/components/schemas/SortObject"
                         }
                     },
+                    "first": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "type": "boolean"
+                    },
+                    "numberOfElements": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "pageable": {
+                        "$ref": "#/components/schemas/PageableObject"
+                    },
                     "empty": {
                         "type": "boolean"
                     }
@@ -2022,6 +2136,16 @@
             "PageableObject": {
                 "type": "object",
                 "properties": {
+                    "offset": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "sort": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SortObject"
+                        }
+                    },
                     "unpaged": {
                         "type": "boolean"
                     },
@@ -2035,16 +2159,6 @@
                     "pageSize": {
                         "type": "integer",
                         "format": "int32"
-                    },
-                    "offset": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "sort": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SortObject"
-                        }
                     }
                 }
             },
@@ -2065,6 +2179,84 @@
                     },
                     "ignoreCase": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "LatestBhav": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "stockSymbol": {
+                        "$ref": "#/components/schemas/StockSymbol"
+                    },
+                    "series": {
+                        "type": "string"
+                    },
+                    "tradeDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "previousClsPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "openingPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "tradeHighPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "tradeLowPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "lastTradedPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "closingPrice": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "vwap": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totTradedQty": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totTradedVal": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalTrades": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "copDelivQty": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "copDelivPerc": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "symbol": {
+                        "type": "string"
+                    },
+                    "symbol_id": {
+                        "type": "integer",
+                        "format": "int64"
                     }
                 }
             },
@@ -2101,55 +2293,6 @@
                     "percentageChange": {
                         "type": "number",
                         "format": "double"
-                    }
-                }
-            },
-            "PageVolumeAlert": {
-                "type": "object",
-                "properties": {
-                    "totalPages": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "totalElements": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "pageable": {
-                        "$ref": "#/components/schemas/PageableObject"
-                    },
-                    "first": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "type": "boolean"
-                    },
-                    "numberOfElements": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "size": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "content": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/VolumeAlert"
-                        }
-                    },
-                    "number": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "sort": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SortObject"
-                        }
-                    },
-                    "empty": {
-                        "type": "boolean"
                     }
                 }
             },
