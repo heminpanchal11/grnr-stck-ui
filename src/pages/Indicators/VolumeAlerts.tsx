@@ -26,6 +26,7 @@ export const VolumeAlerts: React.FC = () => {
   // Stats / categories states
   const [criticalCount, setCriticalCount] = useState<number>(0);
   const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [activeActionRowId, setActiveActionRowId] = useState<number | null>(null);
 
   // Debounce search query
   useEffect(() => {
@@ -47,6 +48,18 @@ export const VolumeAlerts: React.FC = () => {
       }
     };
     loadCategories();
+  }, []);
+
+  // Close symbol popover on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.symbol-popover-trigger')) {
+        setActiveActionRowId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
   // Handle click sorting
@@ -566,9 +579,85 @@ export const VolumeAlerts: React.FC = () => {
                     return (
                       <tr key={alert.id}>
                         <td>
-                          <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                            {symInfo?.symbol || 'UNKNOWN'}
-                          </span>
+                          <div style={{ position: 'relative' }} className="symbol-popover-trigger">
+                            <span 
+                              onClick={() => setActiveActionRowId(activeActionRowId === alert.id ? null : alert.id)}
+                              style={{ 
+                                fontWeight: 700, 
+                                color: 'var(--primary)', 
+                                cursor: 'pointer',
+                                borderBottom: '1px dotted var(--primary)'
+                              }}
+                              title="Click for research links"
+                            >
+                              {symInfo?.symbol || 'UNKNOWN'}
+                            </span>
+                            
+                            {activeActionRowId === alert.id && symInfo?.symbol && (
+                              <div style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 6px)',
+                                left: 0,
+                                zIndex: 100,
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '10px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15)',
+                                minWidth: '160px',
+                                backdropFilter: 'blur(8px)',
+                              }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px', textAlign: 'left', display: 'block' }}>
+                                  Research {symInfo.symbol}
+                                </span>
+                                <a
+                                  href={`https://www.screener.in/company/${symInfo.symbol}/consolidated/`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    fontSize: '12px',
+                                    padding: '6px 10px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: 'var(--bg-tertiary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    textDecoration: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontWeight: 500,
+                                  }}
+                                  className={styles.popoverLink}
+                                >
+                                  🔍 Screener.in
+                                </a>
+                                <a
+                                  href={`https://www.tradingview.com/chart/YCQiJhNa/?symbol=NSE%3A${symInfo.symbol}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    fontSize: '12px',
+                                    padding: '6px 10px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: 'var(--bg-tertiary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    textDecoration: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontWeight: 500,
+                                  }}
+                                  className={styles.popoverLink}
+                                >
+                                  📈 TradingView
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>

@@ -538,3 +538,14 @@
   background-color: var(--bg-tertiary);
 }
 
+.popoverLink {
+  transition: all var(--transition-fast) !important;
+}
+
+.popoverLink:hover {
+  background-color: var(--primary-light) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
+}
+
