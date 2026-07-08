@@ -99,7 +99,7 @@ export const VolumeAlerts: React.FC = () => {
         sortBy = 'stockSymbol.symbol';
       } else if (sortField === 'severity') {
         sortBy = 'multiplier';
-      } else if (sortField === 'averageVolume' || sortField === 'latestVolume' || sortField === 'multiplier' || sortField === 'percentageChange') {
+      } else if (sortField === 'averageVolume' || sortField === 'latestVolume' || sortField === 'multiplier' || sortField === 'percentageChange' || sortField === 'tradedQty' || sortField === 'deliveryQty' || sortField === 'deliveryPercentage') {
         sortBy = sortField;
       }
 
@@ -172,7 +172,10 @@ export const VolumeAlerts: React.FC = () => {
         latestVolume: 14700000,
         multiplier: 3.5,
         thresholdUsed: 1.5,
-        percentageChange: 3.45
+        percentageChange: 3.45,
+        tradedQty: 14700000,
+        deliveryQty: 5880000,
+        deliveryPercentage: 40.0
       },
       {
         id: 2,
@@ -193,7 +196,10 @@ export const VolumeAlerts: React.FC = () => {
         latestVolume: 5460000,
         multiplier: 2.6,
         thresholdUsed: 1.5,
-        percentageChange: -1.20
+        percentageChange: -1.20,
+        tradedQty: 5460000,
+        deliveryQty: 1911000,
+        deliveryPercentage: 35.0
       },
       {
         id: 3,
@@ -214,7 +220,10 @@ export const VolumeAlerts: React.FC = () => {
         latestVolume: 10440000,
         multiplier: 1.8,
         thresholdUsed: 1.5,
-        percentageChange: 2.10
+        percentageChange: 2.10,
+        tradedQty: 10440000,
+        deliveryQty: 4700000,
+        deliveryPercentage: 45.0
       },
       {
         id: 4,
@@ -235,7 +244,10 @@ export const VolumeAlerts: React.FC = () => {
         latestVolume: 15600000,
         multiplier: 1.3,
         thresholdUsed: 1.5,
-        percentageChange: -0.85
+        percentageChange: -0.85,
+        tradedQty: 15600000,
+        deliveryQty: 7800000,
+        deliveryPercentage: 50.0
       }
     ];
 
@@ -274,6 +286,12 @@ export const VolumeAlerts: React.FC = () => {
         comparison = a.multiplier - b.multiplier;
       } else if (sortField === 'percentageChange') {
         comparison = (a.percentageChange ?? 0) - (b.percentageChange ?? 0);
+      } else if (sortField === 'tradedQty') {
+        comparison = (a.tradedQty ?? 0) - (b.tradedQty ?? 0);
+      } else if (sortField === 'deliveryQty') {
+        comparison = (a.deliveryQty ?? 0) - (b.deliveryQty ?? 0);
+      } else if (sortField === 'deliveryPercentage') {
+        comparison = (a.deliveryPercentage ?? 0) - (b.deliveryPercentage ?? 0);
       } else if (sortField === 'alertDate') {
         comparison = a.alertDate.localeCompare(b.alertDate);
       } else if (sortField === 'severity') {
@@ -550,6 +568,24 @@ export const VolumeAlerts: React.FC = () => {
                   </th>
                   <th 
                     className={styles.sortableHeader} 
+                    onClick={() => handleSort('tradedQty')}
+                  >
+                    Traded Qty {renderSortIndicator('tradedQty')}
+                  </th>
+                  <th 
+                    className={styles.sortableHeader} 
+                    onClick={() => handleSort('deliveryQty')}
+                  >
+                    Delivery Qty {renderSortIndicator('deliveryQty')}
+                  </th>
+                  <th 
+                    className={styles.sortableHeader} 
+                    onClick={() => handleSort('deliveryPercentage')}
+                  >
+                    Delivery % {renderSortIndicator('deliveryPercentage')}
+                  </th>
+                  <th 
+                    className={styles.sortableHeader} 
                     onClick={() => handleSort('percentageChange')}
                   >
                     % Change {renderSortIndicator('percentageChange')}
@@ -677,6 +713,27 @@ export const VolumeAlerts: React.FC = () => {
                           </span>
                         </td>
                         <td>
+                          {alert.tradedQty !== undefined && alert.tradedQty !== null ? (
+                            <span>{formatVolume(alert.tradedQty)}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                        <td>
+                          {alert.deliveryQty !== undefined && alert.deliveryQty !== null ? (
+                            <span>{formatVolume(alert.deliveryQty)}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                        <td>
+                          {alert.deliveryPercentage !== undefined && alert.deliveryPercentage !== null ? (
+                            <span style={{ fontWeight: 600 }}>{alert.deliveryPercentage.toFixed(1)}%</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                        <td>
                           {alert.percentageChange !== undefined && alert.percentageChange !== null ? (
                             <span style={{ 
                               color: alert.percentageChange > 0 ? 'var(--accent-success)' : alert.percentageChange < 0 ? 'var(--accent-error)' : 'var(--text-primary)',
@@ -706,7 +763,7 @@ export const VolumeAlerts: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                    <td colSpan={12} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                       No matching volume anomalies found.
                     </td>
                   </tr>

@@ -224,6 +224,9 @@ export interface VolumeAlertResponse {
   multiplier: number;
   thresholdUsed: number;
   percentageChange?: number;
+  tradedQty?: number;
+  deliveryQty?: number;
+  deliveryPercentage?: number;
 }
 
 /**
