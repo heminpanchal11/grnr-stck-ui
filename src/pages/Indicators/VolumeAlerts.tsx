@@ -99,7 +99,7 @@ export const VolumeAlerts: React.FC = () => {
         sortBy = 'stockSymbol.symbol';
       } else if (sortField === 'severity') {
         sortBy = 'multiplier';
-      } else if (sortField === 'averageVolume' || sortField === 'latestVolume' || sortField === 'multiplier' || sortField === 'percentageChange' || sortField === 'tradedQty' || sortField === 'deliveryQty' || sortField === 'deliveryPercentage') {
+      } else if (sortField === 'averageVolume' || sortField === 'latestVolume' || sortField === 'multiplier' || sortField === 'percentageChange' || sortField === 'deliveryPercentage') {
         sortBy = sortField;
       }
 
@@ -286,10 +286,7 @@ export const VolumeAlerts: React.FC = () => {
         comparison = a.multiplier - b.multiplier;
       } else if (sortField === 'percentageChange') {
         comparison = (a.percentageChange ?? 0) - (b.percentageChange ?? 0);
-      } else if (sortField === 'tradedQty') {
-        comparison = (a.tradedQty ?? 0) - (b.tradedQty ?? 0);
-      } else if (sortField === 'deliveryQty') {
-        comparison = (a.deliveryQty ?? 0) - (b.deliveryQty ?? 0);
+
       } else if (sortField === 'deliveryPercentage') {
         comparison = (a.deliveryPercentage ?? 0) - (b.deliveryPercentage ?? 0);
       } else if (sortField === 'alertDate') {
@@ -568,18 +565,6 @@ export const VolumeAlerts: React.FC = () => {
                   </th>
                   <th 
                     className={styles.sortableHeader} 
-                    onClick={() => handleSort('tradedQty')}
-                  >
-                    Traded Qty {renderSortIndicator('tradedQty')}
-                  </th>
-                  <th 
-                    className={styles.sortableHeader} 
-                    onClick={() => handleSort('deliveryQty')}
-                  >
-                    Delivery Qty {renderSortIndicator('deliveryQty')}
-                  </th>
-                  <th 
-                    className={styles.sortableHeader} 
                     onClick={() => handleSort('deliveryPercentage')}
                   >
                     Delivery % {renderSortIndicator('deliveryPercentage')}
@@ -712,20 +697,7 @@ export const VolumeAlerts: React.FC = () => {
                             {alert.multiplier.toFixed(2)}x
                           </span>
                         </td>
-                        <td>
-                          {alert.tradedQty !== undefined && alert.tradedQty !== null ? (
-                            <span>{formatVolume(alert.tradedQty)}</span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>-</span>
-                          )}
-                        </td>
-                        <td>
-                          {alert.deliveryQty !== undefined && alert.deliveryQty !== null ? (
-                            <span>{formatVolume(alert.deliveryQty)}</span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>-</span>
-                          )}
-                        </td>
+
                         <td>
                           {alert.deliveryPercentage !== undefined && alert.deliveryPercentage !== null ? (
                             <span style={{ fontWeight: 600 }}>{alert.deliveryPercentage.toFixed(1)}%</span>
