@@ -437,6 +437,53 @@ export async function getHistoricBhav(symbol: string, startDate?: string, endDat
   return handleResponse<DailyBhav[]>(response);
 }
 
+export interface DeliveryAlertResponse {
+  id: number;
+  stockSymbol: StockSymbolResponse;
+  alertDate: string;
+  latestDeliveryPercentage: number;
+  averageDeliveryPercentage: number;
+  multiplier: number;
+  thresholdUsed: number;
+  percentageChange?: number;
+  tradedQty?: number;
+  deliveryQty?: number;
+}
+
+export interface PageDeliveryAlert {
+  totalPages: number;
+  totalElements: number;
+  pageable: PageableObject;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  size: number;
+  content: DeliveryAlertResponse[];
+  number: number;
+  empty: boolean;
+}
+
+/**
+ * Search and filter delivery alerts.
+ * GET /api/v1/delivery-alerts/search
+ */
+export async function searchDeliveryAlerts(params: SearchAlertsParams): Promise<PageDeliveryAlert> {
+  const queryParams = new URLSearchParams();
+  if (params.symbol) queryParams.append('symbol', params.symbol);
+  if (params.category) queryParams.append('category', params.category);
+  if (params.subcategory) queryParams.append('subcategory', params.subcategory);
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.minMultiplier !== undefined) queryParams.append('minMultiplier', params.minMultiplier.toString());
+  if (params.page !== undefined) queryParams.append('page', params.page.toString());
+  if (params.size !== undefined) queryParams.append('size', params.size.toString());
+  if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+  if (params.sortDir) queryParams.append('sortDir', params.sortDir);
+
+  const response = await fetch(`/api/v1/delivery-alerts/search?${queryParams.toString()}`);
+  return handleResponse<PageDeliveryAlert>(response);
+}
+
 
 
 

@@ -98,6 +98,11 @@ export const navigationConfig: NavigationSection[] = [
             label: 'SubCategory',
             icon: GitBranch,
             path: '/indicators/heatmaps/subcategory'
+          },
+          {
+            label: 'Deliveries',
+            icon: GitBranch,
+            path: '/indicators/heatmaps/deliveries'
           }
         ]
       },
@@ -107,14 +112,25 @@ export const navigationConfig: NavigationSection[] = [
         path: '/indicators/tagboard'
       },
       {
-        label: 'Volume Alerts',
+        label: 'Alerts',
         icon: Bell,
-        path: '/indicators/volume-alerts'
-      },
-      {
-        label: 'VA Stacked',
-        icon: Layers,
-        path: '/indicators/va-stacked'
+        children: [
+          {
+            label: 'Volume Alerts',
+            icon: Bell,
+            path: '/indicators/volume-alerts'
+          },
+          {
+            label: 'Delivery Alerts',
+            icon: Bell,
+            path: '/indicators/delivery-alerts'
+          },
+          {
+            label: 'VA Stacked',
+            icon: Layers,
+            path: '/indicators/va-stacked'
+          }
+        ]
       }
     ]
   },

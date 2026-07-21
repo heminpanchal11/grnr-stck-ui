@@ -45,6 +45,10 @@
             "description": "Endpoints for scraping and retrieving stock daily bhav (price) data"
         },
         {
+            "name": "Delivery Alerts",
+            "description": "Endpoints for delivery percentage tracking and alerts"
+        },
+        {
             "name": "Stock Bhav Data",
             "description": "Endpoints for serving latest and historic bhav data of stock symbols"
         },
@@ -1080,6 +1084,42 @@
                 }
             }
         },
+        "/api/v1/delivery-alerts/check/{symbolId}": {
+            "post": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Check delivery spike for a symbol",
+                "description": "Runs the delivery spike check for a given symbol ID against the last 5-day average. Creates an alert if the threshold is met.",
+                "operationId": "checkDeliverySpike",
+                "parameters": [
+                    {
+                        "name": "symbolId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "threshold",
+                        "in": "query",
+                        "description": "Custom delivery threshold multiplier (defaults to 1.5)",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "double"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Check completed successfully"
+                    }
+                }
+            }
+        },
         "/api/v1/categories": {
             "get": {
                 "tags": [
@@ -1535,6 +1575,268 @@
                 }
             }
         },
+        "/api/v1/delivery-alerts": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Get all delivery alerts",
+                "description": "Retrieves all delivery alerts generated in the system.",
+                "operationId": "getAllAlerts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliveryAlert"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/delivery-alerts/symbol/{symbolId}": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Get alerts by symbol ID",
+                "description": "Retrieves delivery alerts generated for a specific stock symbol ID.",
+                "operationId": "getAlertsBySymbolId",
+                "parameters": [
+                    {
+                        "name": "symbolId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliveryAlert"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/delivery-alerts/search": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Search and filter delivery alerts",
+                "description": "Retrieves a paginated list of delivery alerts filtered by symbol, category, subcategory, date range, and minimum multiplier, with custom sorting.",
+                "operationId": "searchAlerts",
+                "parameters": [
+                    {
+                        "name": "symbol",
+                        "in": "query",
+                        "description": "Stock symbol (e.g. RELIANCE)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Category name (e.g. TECHNOLOGY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "subcategory",
+                        "in": "query",
+                        "description": "Subcategory name (e.g. OIL REFINERY)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "description": "Start date (yyyy-MM-dd)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "description": "End date (yyyy-MM-dd)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "minMultiplier",
+                        "in": "query",
+                        "description": "Minimum multiplier (e.g. 1.5)",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "double"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Zero-based page index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "sortBy",
+                        "in": "query",
+                        "description": "Property to sort by",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "alertDate"
+                        }
+                    },
+                    {
+                        "name": "sortDir",
+                        "in": "query",
+                        "description": "Sort direction (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved filtered delivery alerts",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PageDeliveryAlert"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/delivery-alerts/daily-summary": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Get total alerts generated daily grouped by category",
+                "description": "Retrieves a summary of delivery alerts count grouped by date and category.",
+                "operationId": "getDailyAlertsSummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliveryAlertDailySummaryCategory"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/delivery-alerts/daily-subcategory-summary": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Get total alerts generated daily grouped by subcategory",
+                "description": "Retrieves a summary of delivery alerts count grouped by date and subcategory.",
+                "operationId": "getDailyAlertsSubcategorySummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeliveryAlertDailySummarySubcategory"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/delivery-alerts/daily-stacked-summary": {
+            "get": {
+                "tags": [
+                    "Delivery Alerts"
+                ],
+                "summary": "Get daily alert counts in a format optimized for stacked bar charts",
+                "description": "Returns a list of day-wise records, where each day contains counts for each category (e.g. {date: '2026-06-22', ENERGY: 5, FINANCE: 2})",
+                "operationId": "getDailyStackedSummary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/bhav/{symbol}/latest": {
             "get": {
                 "tags": [
@@ -1654,7 +1956,7 @@
                 ],
                 "summary": "Get all volume alerts",
                 "description": "Retrieves all volume alerts generated in the system.",
-                "operationId": "getAllAlerts",
+                "operationId": "getAllAlerts_1",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1679,7 +1981,7 @@
                 ],
                 "summary": "Get alerts by symbol ID",
                 "description": "Retrieves volume alerts generated for a specific stock symbol ID.",
-                "operationId": "getAlertsBySymbolId",
+                "operationId": "getAlertsBySymbolId_1",
                 "parameters": [
                     {
                         "name": "symbolId",
@@ -1715,7 +2017,7 @@
                 ],
                 "summary": "Search and filter volume alerts",
                 "description": "Retrieves a paginated list of volume alerts filtered by symbol, category, subcategory, date range, and minimum multiplier, with custom sorting.",
-                "operationId": "searchAlerts",
+                "operationId": "searchAlerts_1",
                 "parameters": [
                     {
                         "name": "symbol",
@@ -1838,7 +2140,7 @@
                 ],
                 "summary": "Get total alerts generated daily grouped by category",
                 "description": "Retrieves a summary of volume alerts count grouped by date and category.",
-                "operationId": "getDailyAlertsSummary",
+                "operationId": "getDailyAlertsSummary_1",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1863,7 +2165,7 @@
                 ],
                 "summary": "Get total alerts generated daily grouped by subcategory",
                 "description": "Retrieves a summary of volume alerts count grouped by date and subcategory.",
-                "operationId": "getDailyAlertsSubcategorySummary",
+                "operationId": "getDailyAlertsSubcategorySummary_1",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1888,7 +2190,7 @@
                 ],
                 "summary": "Get daily alert counts in a format optimized for stacked bar charts",
                 "description": "Returns a list of day-wise records, where each day contains counts for each category (e.g. {date: '2026-06-22', ENERGY: 5, FINANCE: 2})",
-                "operationId": "getDailyStackedSummary",
+                "operationId": "getDailyStackedSummary_1",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2218,12 +2520,6 @@
                         "type": "integer",
                         "format": "int64"
                     },
-                    "first": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "type": "boolean"
-                    },
                     "size": {
                         "type": "integer",
                         "format": "int32"
@@ -2243,6 +2539,12 @@
                         "items": {
                             "$ref": "#/components/schemas/SortObject"
                         }
+                    },
+                    "first": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "type": "boolean"
                     },
                     "numberOfElements": {
                         "type": "integer",
@@ -2269,11 +2571,11 @@
                             "$ref": "#/components/schemas/SortObject"
                         }
                     },
-                    "pageNumber": {
+                    "pageSize": {
                         "type": "integer",
                         "format": "int32"
                     },
-                    "pageSize": {
+                    "pageNumber": {
                         "type": "integer",
                         "format": "int32"
                     },
@@ -2302,6 +2604,131 @@
                     },
                     "ignoreCase": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "DeliveryAlert": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "stockSymbol": {
+                        "$ref": "#/components/schemas/StockSymbol"
+                    },
+                    "alertDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "latestDeliveryPercentage": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "averageDeliveryPercentage": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "multiplier": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "thresholdUsed": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "percentageChange": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "tradedQty": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "deliveryQty": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "PageDeliveryAlert": {
+                "type": "object",
+                "properties": {
+                    "totalPages": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "totalElements": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "content": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DeliveryAlert"
+                        }
+                    },
+                    "number": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "sort": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SortObject"
+                        }
+                    },
+                    "first": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "type": "boolean"
+                    },
+                    "numberOfElements": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "pageable": {
+                        "$ref": "#/components/schemas/PageableObject"
+                    },
+                    "empty": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "DeliveryAlertDailySummaryCategory": {
+                "type": "object",
+                "properties": {
+                    "alertDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "categoryName": {
+                        "type": "string"
+                    },
+                    "alertCount": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "DeliveryAlertDailySummarySubcategory": {
+                "type": "object",
+                "properties": {
+                    "alertDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "subcategoryName": {
+                        "type": "string"
+                    },
+                    "alertCount": {
+                        "type": "integer",
+                        "format": "int64"
                     }
                 }
             },
@@ -2364,12 +2791,6 @@
                         "type": "integer",
                         "format": "int64"
                     },
-                    "first": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "type": "boolean"
-                    },
                     "size": {
                         "type": "integer",
                         "format": "int32"
@@ -2389,6 +2810,12 @@
                         "items": {
                             "$ref": "#/components/schemas/SortObject"
                         }
+                    },
+                    "first": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "type": "boolean"
                     },
                     "numberOfElements": {
                         "type": "integer",

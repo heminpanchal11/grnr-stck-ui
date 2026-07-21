@@ -259,14 +259,34 @@
 }
 
 /* Recursive levels spacing */
+.level0 {
+  padding-left: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .level1 {
-  padding-left: 12px;
+  padding-left: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
+
+.level1 .itemIcon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
+}
+
 .level2 {
-  padding-left: 28px;
+  padding-left: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
 }
-.level3 {
-  padding-left: 44px;
+
+.level2 .itemIcon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.65;
 }
 
 /* Submenu container (Smooth expanding with CSS Grid) */
@@ -287,6 +307,9 @@
   flex-direction: column;
   gap: 2px;
   padding: 4px 0;
+  margin-left: 23px; /* Align guide line with parent's icon center */
+  border-left: 1.5px solid var(--border-color);
+  padding-left: 8px;
 }
 
 /* Collapsed hover tooltip */

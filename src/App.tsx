@@ -10,8 +10,10 @@ import { Symbols } from './pages/Markets/NSE/Symbols';
 import { Categories } from './pages/Markets/NSE/Categories';
 import { Subcategories } from './pages/Markets/NSE/Subcategories';
 import { SubcategoryHeatmap } from './pages/Indicators/Heatmaps/Subcategory';
+import { DeliveriesHeatmap } from './pages/Indicators/Heatmaps/Deliveries';
 import { Tagboard } from './pages/Indicators/Tagboard';
 import { VolumeAlerts } from './pages/Indicators/VolumeAlerts';
+import { DeliveryAlerts } from './pages/Indicators/DeliveryAlerts';
 import { VAStacked } from './pages/Indicators/VAStacked';
 
 function App() {
@@ -43,9 +45,11 @@ function App() {
           <Route path="indicators">
             <Route path="heatmaps">
               <Route path="subcategory" element={<SubcategoryHeatmap />} />
+              <Route path="deliveries" element={<DeliveriesHeatmap />} />
             </Route>
             <Route path="tagboard" element={<Tagboard />} />
             <Route path="volume-alerts" element={<VolumeAlerts />} />
+            <Route path="delivery-alerts" element={<DeliveryAlerts />} />
             <Route path="va-stacked" element={<VAStacked />} />
           </Route>
           
