@@ -184,11 +184,19 @@ export const DeliveriesHeatmap: React.FC = () => {
 
   // Get color based on delivery percentage (COP_DELIV_PERC)
   const getTileColor = (deliveryPerc: number, isDark: boolean): any => {
+
+    if (deliveryPerc >= 90) {
+      return new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+        { offset: 0, color: '#ff05da' }, // yellow-200
+        { offset: 0.5, color: '#f424fb' }, // yellow-400 (amber/golden)
+        { offset: 1, color: '#9a0dff' } // yellow-600 (darker gold)
+      ]);
+    }
     if (deliveryPerc >= 70) {
       return new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-        { offset: 0, color: '#fef08a' }, // yellow-200
-        { offset: 0.5, color: '#fbbf24' }, // yellow-400 (amber/golden)
-        { offset: 1, color: '#d97706' } // yellow-600 (darker gold)
+        { offset: 0, color: '#0505ff' }, // yellow-200
+        { offset: 0.5, color: '#245dfb' }, // yellow-400 (amber/golden)
+        { offset: 1, color: '#9a0dff' } // yellow-600 (darker gold)
       ]);
     }
     if (deliveryPerc >= 50) {
@@ -200,9 +208,9 @@ export const DeliveriesHeatmap: React.FC = () => {
     }
     if (deliveryPerc >= 30) {
       return new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-        { offset: 0, color: '#bbf7d0' }, // green-200
-        { offset: 0.5, color: '#86efac' }, // green-300
-        { offset: 1, color: '#4ade80' } // green-400
+        { offset: 0, color: '#fdfdfd' }, // green-200
+        { offset: 0.5, color: '#f9f9f9' }, // green-300
+        { offset: 1, color: '#edfff4' } // green-400
       ]);
     }
     if (isDark) {
