@@ -146,6 +146,14 @@
   border-bottom: none;
 }
 
+.table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
 /* Status Badges */
 .badge {
   display: inline-flex;
