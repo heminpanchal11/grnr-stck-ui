@@ -25,6 +25,7 @@ export const DeliveriesHeatmap: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTheme, setActiveTheme] = useState<string>('light');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [sizeMetric, setSizeMetric] = useState<'equal' | 'volume' | 'logVolume'>('equal');
 
   // Handle body overflow to prevent background scrolling when fullscreen
   useEffect(() => {
@@ -248,6 +249,16 @@ export const DeliveriesHeatmap: React.FC = () => {
       groups[sub].push(stock);
     });
 
+    const getStockValue = (stock: StockData) => {
+      if (sizeMetric === 'equal') {
+        return 1;
+      } else if (sizeMetric === 'logVolume') {
+        return Math.log10(Math.max(stock.totTradedVal, 1));
+      } else {
+        return stock.totTradedVal;
+      }
+    };
+
     // Transform grouped data into ECharts Treemap data structure
     const treemapData = Object.keys(groups).map(subName => {
       const children = groups[subName].map(stock => {
@@ -263,8 +274,8 @@ export const DeliveriesHeatmap: React.FC = () => {
         
         return {
           name: stock.symbol,
-          // Tile size corresponds to total transaction value (totTradedVal)
-          value: stock.totTradedVal,
+          value: getStockValue(stock),
+          totTradedVal: stock.totTradedVal,
           percentChange: stock.percentChange,
           copDelivPerc: stock.copDelivPerc,
           copDelivQty: stock.copDelivQty,
@@ -291,10 +302,12 @@ export const DeliveriesHeatmap: React.FC = () => {
 
       // Sum values of children for subcategory weight
       const subValueSum = children.reduce((sum, child) => sum + child.value, 0);
+      const actualSubValueSum = children.reduce((sum, child) => sum + child.totTradedVal, 0);
 
       return {
         name: subName,
         value: subValueSum,
+        actualValue: actualSubValueSum,
         children: children,
         itemStyle: {
           borderColor: isDark ? '#1f2937' : '#f1f5f9',
@@ -327,10 +340,13 @@ export const DeliveriesHeatmap: React.FC = () => {
           
           // Only show stock symbol details, not the outer subcategory headers
           if (!data || data.copDelivPerc === undefined) {
-            return `<strong>${info.name}</strong><br/>Total Value: ₹${(val / 10000000).toFixed(2)} Cr`;
+            const actualVal = data ? data.actualValue : val;
+            const count = data && data.children ? data.children.length : 0;
+            return `<strong>${info.name}</strong><br/>Companies: ${count}<br/>Total Value: ₹${(actualVal / 10000000).toFixed(2)} Cr`;
           }
 
           const sign = data.percentChange > 0 ? '+' : '';
+          const actualTradedVal = data.totTradedVal;
           return `
             <div style="font-family: var(--font-sans); padding: 4px; min-width: 170px;">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${isDark ? '#374151' : '#e2e8f0'}; padding-bottom: 6px; margin-bottom: 6px; gap: 12px;">
@@ -342,7 +358,7 @@ export const DeliveriesHeatmap: React.FC = () => {
                 <div>Change: <strong style="color: ${data.percentChange >= 0 ? 'var(--accent-success)' : 'var(--accent-error)'}">${sign}${data.percentChange.toFixed(2)}%</strong></div>
                 <div>Delivery %: <strong style="color: var(--primary);">${data.copDelivPerc.toFixed(1)}%</strong></div>
                 <div>Delivery Qty: <strong>${data.copDelivQty.toLocaleString()}</strong></div>
-                <div>Traded Value: <strong>₹${(val / 10000000).toFixed(2)} Cr</strong></div>
+                <div>Traded Value: <strong>₹${(actualTradedVal / 10000000).toFixed(2)} Cr</strong></div>
                 <div>Traded Qty: <strong>${data.volume.toLocaleString()}</strong></div>
               </div>
             </div>
@@ -353,7 +369,7 @@ export const DeliveriesHeatmap: React.FC = () => {
         {
           name: 'NSE Deliveries',
           type: 'treemap',
-          visibleMin: 300,
+          visibleMin: sizeMetric === 'equal' || sizeMetric === 'logVolume' ? 0 : 300,
           label: {
             show: true,
             formatter: '{b}'
@@ -408,7 +424,7 @@ export const DeliveriesHeatmap: React.FC = () => {
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };
-  }, [loading, data, activeTheme]);
+  }, [loading, data, activeTheme, sizeMetric]);
 
   // Clean-up chart on unmount
   useEffect(() => {
@@ -495,7 +511,31 @@ export const DeliveriesHeatmap: React.FC = () => {
           <h2 className={styles.sectionTitle} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             Sector Stock Delivery Treemap
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Size By:</span>
+              <select
+                value={sizeMetric}
+                onChange={(e) => setSizeMetric(e.target.value as any)}
+                style={{
+                  height: '34px',
+                  padding: '0 8px',
+                  fontSize: '13px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'border-color var(--transition-fast)'
+                }}
+              >
+                <option value="equal">Equal Sizing (See More Tiles)</option>
+                <option value="volume">Traded Value (Linear)</option>
+                <option value="logVolume">Traded Value (Log Scale)</option>
+              </select>
+            </div>
             <button
               type="button"
               className={styles.toggleBtn}
