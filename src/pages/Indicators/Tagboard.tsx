@@ -19,7 +19,7 @@ import {
   updateTagBoard,
   deleteTagBoard,
   getSymbols,
-  getLatestBhav,
+  getLatestBhavForSymbol,
   getHistoricBhav,
   type TagBoardResponse,
   type StockSymbolResponse,
@@ -32,9 +32,10 @@ interface TagBoardChartProps {
   bhavMap: Record<string, any>;
   isDark: boolean;
   isFullscreen: boolean;
+  sizeMetric: 'equal' | 'volume' | 'logVolume';
 }
 
-const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark, isFullscreen }) => {
+const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark, isFullscreen, sizeMetric }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
 
@@ -62,18 +63,30 @@ const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark
       return isDark ? '#374151' : '#e2e8f0'; // Neutral
     };
 
+    const getStockValue = (bhav: any) => {
+      const vol = bhav?.totTradedVal || 10000000;
+      if (sizeMetric === 'equal') {
+        return 1;
+      } else if (sizeMetric === 'logVolume') {
+        return Math.log10(Math.max(vol, 1));
+      } else {
+        return vol;
+      }
+    };
+
     // Prepare treemap data
     const children = tagboard.symbols.map(sym => {
       const bhav = bhavMap[sym.symbol.toUpperCase()];
       const prev = bhav?.previousClsPrice || 0;
       const ltp = bhav?.lastTradedPrice || 0;
       const percentChange = prev > 0 ? ((ltp - prev) / prev) * 100 : 0;
-      const value = bhav?.totTradedVal || 10000000; // Default sizing weight
+      const value = getStockValue(bhav);
       const color = getTileColor(percentChange);
 
       return {
         name: sym.symbol,
         value: value,
+        totTradedVal: bhav?.totTradedVal || 0,
         percentChange: percentChange,
         price: ltp || prev || 0,
         prevPrice: prev,
@@ -107,11 +120,11 @@ const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark
           fontSize: 13
         },
         formatter: (info: any) => {
-          const val = info.value;
           const data = info.data;
           if (!data || data.percentChange === undefined) return `<strong>${info.name}</strong>`;
 
           const sign = data.percentChange > 0 ? '+' : '';
+          const actualTradedVal = data.totTradedVal;
           return `
             <div style="font-family: var(--font-sans); padding: 4px; min-width: 170px;">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${isDark ? '#374151' : '#e2e8f0'}; padding-bottom: 6px; margin-bottom: 6px; gap: 12px;">
@@ -122,7 +135,7 @@ const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark
                 <div>Last Price: <strong>₹${data.price.toLocaleString()}</strong></div>
                 <div>Prev Close: <strong>₹${data.prevPrice.toLocaleString()}</strong></div>
                 <div>Change: <strong style="color: ${data.percentChange >= 0 ? 'var(--accent-success)' : 'var(--accent-error)'}">${sign}${data.percentChange.toFixed(2)}%</strong></div>
-                <div>Traded Value: <strong>₹${(val / 10000000).toFixed(2)} Cr</strong></div>
+                <div>Traded Value: <strong>₹${(actualTradedVal / 10000000).toFixed(2)} Cr</strong></div>
                 <div>Traded Qty: <strong>${data.volume.toLocaleString()}</strong></div>
               </div>
             </div>
@@ -133,7 +146,7 @@ const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark
         {
           name: tagboard.name,
           type: 'treemap',
-          visibleMin: 300,
+          visibleMin: sizeMetric === 'equal' || sizeMetric === 'logVolume' ? 0 : 300,
           breadcrumb: { show: false },
           label: {
             show: true,
@@ -170,7 +183,7 @@ const TagBoardChart: React.FC<TagBoardChartProps> = ({ tagboard, bhavMap, isDark
       resizeObserver.disconnect();
       chartInstance.current?.dispose();
     };
-  }, [tagboard, bhavMap, isDark]);
+  }, [tagboard, bhavMap, isDark, sizeMetric]);
 
   return (
     <div
@@ -192,6 +205,7 @@ export const Tagboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTheme, setActiveTheme] = useState<string>('light');
+  const [sizeMetric, setSizeMetric] = useState<'equal' | 'volume' | 'logVolume'>('equal');
 
   // Form State
   const [isFormModalOpen, setIsFormModalOpen] = useState<boolean>(false);
@@ -259,7 +273,7 @@ export const Tagboard: React.FC = () => {
       let priceMap: Record<string, any> = {};
       if (uniqueSymbolsList.length > 0) {
         try {
-          const bhavData = await getLatestBhav(uniqueSymbolsList.join(','));
+          const bhavData = await getLatestBhavForSymbol(uniqueSymbolsList.join(','));
           const bhavList = Array.isArray(bhavData) ? bhavData : bhavData ? [bhavData] : [];
           bhavList.forEach((bhav: any) => {
             if (bhav && bhav.symbol) {
@@ -267,7 +281,7 @@ export const Tagboard: React.FC = () => {
             }
           });
         } catch (err) {
-          console.warn('API getLatestBhav failed, using mock prices.', err);
+          console.warn('API getLatestBhavForSymbol failed, using mock prices.', err);
           priceMap = getMockBhavMap();
         }
       } else {
@@ -970,15 +984,41 @@ export const Tagboard: React.FC = () => {
               Monitor customized groups of symbols, visualize change in treemaps, and compare historical behaviors.
             </p>
           </div>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            onClick={handleOpenCreate}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Plus size={16} />
-            Create Tagboard
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Size By:</span>
+              <select
+                value={sizeMetric}
+                onChange={(e) => setSizeMetric(e.target.value as any)}
+                style={{
+                  height: '34px',
+                  padding: '0 8px',
+                  fontSize: '13px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'border-color var(--transition-fast)'
+                }}
+              >
+                <option value="equal">Equal Sizing (See More Tiles)</option>
+                <option value="volume">Traded Value (Linear)</option>
+                <option value="logVolume">Traded Value (Log Scale)</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleOpenCreate}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Plus size={16} />
+              Create Tagboard
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1110,6 +1150,7 @@ export const Tagboard: React.FC = () => {
                   bhavMap={bhavMap}
                   isDark={isDark}
                   isFullscreen={false}
+                  sizeMetric={sizeMetric}
                 />
               </div>
             </div>
