@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Volume2, AlertTriangle, RefreshCw, Info, Search } from 'lucide-react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getCategories, searchDeliveryAlerts, type DeliveryAlertResponse, type SearchAlertsParams } from '../../utils/api';
 
 export const DeliveryAlerts: React.FC = () => {
+  useDocumentTitle('Delivery Alerts');
   const [loading, setLoading] = useState<boolean>(true);
   const [alerts, setAlerts] = useState<DeliveryAlertResponse[]>([]);
   const [error, setError] = useState<string | null>(null);

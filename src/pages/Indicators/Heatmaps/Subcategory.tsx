@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import { RefreshCw, TrendingUp, Info, Maximize2, Minimize2 } from 'lucide-react';
 import styles from '../../pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 
 interface StockData {
   symbol: string;
@@ -16,6 +17,7 @@ interface StockData {
 }
 
 export const SubcategoryHeatmap: React.FC = () => {
+  useDocumentTitle('Subcategory Heatmap');
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const [data, setData] = useState<StockData[]>([]);
@@ -244,10 +246,43 @@ export const SubcategoryHeatmap: React.FC = () => {
           label: {
             show: true,
             position: 'inside' as const,
-            formatter: `${stock.symbol}\n${stock.percentChange > 0 ? '+' : ''}${stock.percentChange.toFixed(2)}%`,
-            color: '#ffffff',
-            fontWeight: 'bold' as const,
-            fontSize: 12
+            formatter: (params: any) => {
+              const d = params.data || {};
+              const sym = d.name || params.name || '';
+              const pct = typeof d.percentChange === 'number' ? `${d.percentChange > 0 ? '+' : ''}${d.percentChange.toFixed(2)}%` : '';
+              const prc = d.price ? `₹${d.price.toLocaleString()}` : '';
+              return prc ? `{sym|${sym}}\n{pct|${pct}}\n{prc|${prc}}` : `{sym|${sym}}\n{pct|${pct}}`;
+            },
+            rich: {
+              sym: {
+                fontSize: 11,
+                fontWeight: 'bold' as const,
+                lineHeight: 14,
+                color: '#ffffff',
+                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                textShadowBlur: 2,
+                align: 'center' as const
+              },
+              pct: {
+                fontSize: 10,
+                fontWeight: 600,
+                lineHeight: 13,
+                color: '#ffffff',
+                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                textShadowBlur: 2,
+                align: 'center' as const
+              },
+              prc: {
+                fontSize: 9,
+                lineHeight: 12,
+                color: 'rgba(255, 255, 255, 0.9)',
+                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                textShadowBlur: 2,
+                align: 'center' as const
+              }
+            },
+            overflow: 'truncate' as const,
+            ellipsis: '...'
           }
         };
       });
@@ -269,9 +304,16 @@ export const SubcategoryHeatmap: React.FC = () => {
         upperLabel: {
           show: true,
           height: 24,
-          color: isDark ? '#d1d5db' : '#374151',
-          fontWeight: 'bold' as const,
-          fontSize: 11
+          formatter: (params: any) => {
+            const count = params.data?.children?.length || 0;
+            return count > 0 ? `${params.name} (${count})` : `${params.name}`;
+          },
+          color: isDark ? '#f1f5f9' : '#1e293b',
+          fontWeight: 700,
+          fontSize: 11,
+          overflow: 'truncate' as const,
+          ellipsis: '...',
+          padding: [0, 6]
         }
       };
     });
@@ -343,12 +385,27 @@ export const SubcategoryHeatmap: React.FC = () => {
                 borderWidth: 4,
                 borderColor: isDark ? '#111827' : '#f8fafc',
                 gapWidth: 4
+              },
+              upperLabel: {
+                show: true,
+                height: 24,
+                color: isDark ? '#f1f5f9' : '#1e293b',
+                fontWeight: 700,
+                fontSize: 11,
+                overflow: 'truncate' as const,
+                ellipsis: '...'
               }
             },
             {
               itemStyle: {
                 borderWidth: 2,
                 gapWidth: 2
+              },
+              label: {
+                show: true,
+                position: 'inside' as const,
+                overflow: 'truncate' as const,
+                ellipsis: '...'
               }
             }
           ],

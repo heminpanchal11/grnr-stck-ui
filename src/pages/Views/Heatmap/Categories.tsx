@@ -9,6 +9,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import styles from '../../../pages/pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import { 
   getCategories, 
   getSymbols, 
@@ -40,6 +41,7 @@ const getMockCategoryData = (name: string) => {
 };
 
 export const CategoriesHeatmap: React.FC = () => {
+  useDocumentTitle('Sector Heatmap');
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [symbols, setSymbols] = useState<StockSymbolResponse[]>([]);
   const [loading, setLoading] = useState(false);

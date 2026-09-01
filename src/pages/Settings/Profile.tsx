@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 export const Profile: React.FC = () => {
+  useDocumentTitle('Profile Settings');
   const [name, setName] = useState('John Doe');
   const [email, setEmail] = useState('john.doe@company.com');
   const [bio, setBio] = useState('Creating elegant UI architectures and scalable design systems for enterprise teams.');

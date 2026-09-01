@@ -10,6 +10,7 @@ import {
   Filter
 } from 'lucide-react';
 import styles from '../../../pages/pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import { 
   getSubcategories, 
   getCategories,
@@ -42,6 +43,7 @@ const getMockSubcategoryData = (name: string) => {
 };
 
 export const SubcategoriesHeatmap: React.FC = () => {
+  useDocumentTitle('Subcategory Heatmap');
   const [subcategories, setSubcategories] = useState<SubcategoryResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [symbols, setSymbols] = useState<StockSymbolResponse[]>([]);

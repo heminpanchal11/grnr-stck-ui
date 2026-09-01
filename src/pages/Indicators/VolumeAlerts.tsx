@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Volume2, AlertTriangle, RefreshCw, Info, Search } from 'lucide-react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getCategories, searchAlerts, type VolumeAlertResponse, type SearchAlertsParams } from '../../utils/api';
 
 export const VolumeAlerts: React.FC = () => {
+  useDocumentTitle('Volume Alerts');
   const [loading, setLoading] = useState<boolean>(true);
   const [alerts, setAlerts] = useState<VolumeAlertResponse[]>([]);
   const [error, setError] = useState<string | null>(null);

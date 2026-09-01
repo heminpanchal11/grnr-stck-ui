@@ -1,8 +1,10 @@
 import React from 'react';
 import { Folder, ListTodo, Users, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 export const Dashboard: React.FC = () => {
+  useDocumentTitle('Dashboard');
   const stats = [
     {
       label: 'Active Projects',

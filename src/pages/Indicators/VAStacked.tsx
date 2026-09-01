@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import { RefreshCw, Maximize2, Minimize2, BarChart3, Layers, Calendar, Info } from 'lucide-react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import {
   getDailyAlertsSummary,
   getDailyAlertsSubcategorySummary,
@@ -10,6 +11,7 @@ import {
 } from '../../utils/api';
 
 export const VAStacked: React.FC = () => {
+  useDocumentTitle('VA Stacked');
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
 

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 export const Security: React.FC = () => {
+  useDocumentTitle('Security Settings');
   // Toggle states
   const [mfaEnabled, setMfaEnabled] = useState(true);
   const [timeoutEnabled, setTimeoutEnabled] = useState(false);

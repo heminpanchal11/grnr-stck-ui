@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import { RefreshCw, TrendingUp, Info, Maximize2, Minimize2 } from 'lucide-react';
 import styles from '../../pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 
 interface StockData {
   symbol: string;
@@ -18,6 +19,7 @@ interface StockData {
 }
 
 export const DeliveriesHeatmap: React.FC = () => {
+  useDocumentTitle('Deliveries Heatmap');
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const [data, setData] = useState<StockData[]>([]);
@@ -292,10 +294,37 @@ export const DeliveriesHeatmap: React.FC = () => {
           label: {
             show: true,
             position: 'inside' as const,
-            formatter: `${stock.symbol}\n${stock.copDelivPerc.toFixed(1)}%`,
-            color: textColor,
-            fontWeight: 'bold' as const,
-            fontSize: 12
+            formatter: (params: any) => {
+              const d = params.data || {};
+              const sym = d.name || params.name || '';
+              const deliv = typeof d.copDelivPerc === 'number' ? `Deliv: ${d.copDelivPerc.toFixed(1)}%` : '';
+              const pct = typeof d.percentChange === 'number' ? `${d.percentChange > 0 ? '+' : ''}${d.percentChange.toFixed(2)}%` : '';
+              return deliv ? `{sym|${sym}}\n{deliv|${deliv}}\n{pct|${pct}}` : `{sym|${sym}}\n{pct|${pct}}`;
+            },
+            rich: {
+              sym: {
+                fontSize: 11,
+                fontWeight: 'bold' as const,
+                lineHeight: 14,
+                color: textColor,
+                align: 'center' as const
+              },
+              deliv: {
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 13,
+                color: textColor,
+                align: 'center' as const
+              },
+              pct: {
+                fontSize: 9,
+                lineHeight: 12,
+                color: textColor,
+                align: 'center' as const
+              }
+            },
+            overflow: 'truncate' as const,
+            ellipsis: '...'
           }
         };
       });
@@ -317,9 +346,16 @@ export const DeliveriesHeatmap: React.FC = () => {
         upperLabel: {
           show: true,
           height: 24,
-          color: isDark ? '#d1d5db' : '#374151',
-          fontWeight: 'bold' as const,
-          fontSize: 11
+          formatter: (params: any) => {
+            const count = params.data?.children?.length || 0;
+            return count > 0 ? `${params.name} (${count})` : `${params.name}`;
+          },
+          color: isDark ? '#f1f5f9' : '#1e293b',
+          fontWeight: 700,
+          fontSize: 11,
+          overflow: 'truncate' as const,
+          ellipsis: '...',
+          padding: [0, 6]
         }
       };
     });
@@ -392,12 +428,27 @@ export const DeliveriesHeatmap: React.FC = () => {
                 borderWidth: 4,
                 borderColor: isDark ? '#111827' : '#f8fafc',
                 gapWidth: 4
+              },
+              upperLabel: {
+                show: true,
+                height: 24,
+                color: isDark ? '#f1f5f9' : '#1e293b',
+                fontWeight: 700,
+                fontSize: 11,
+                overflow: 'truncate' as const,
+                ellipsis: '...'
               }
             },
             {
               itemStyle: {
                 borderWidth: 2,
                 gapWidth: 2
+              },
+              label: {
+                show: true,
+                position: 'inside' as const,
+                overflow: 'truncate' as const,
+                ellipsis: '...'
               }
             }
           ],

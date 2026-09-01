@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import styles from '../../pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import {
   getSymbols,
   createSymbol,
@@ -305,6 +306,7 @@ const SymbolRow: React.FC<SymbolRowProps> = ({
 };
 
 export const Symbols: React.FC = () => {
+  useDocumentTitle('NSE Symbols');
   // API Symbols Manager state
   const [symbolsList, setSymbolsList] = useState<StockSymbolResponse[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryResponse[]>([]);

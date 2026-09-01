@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import styles from '../../pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import {
   getSubcategories,
   createSubcategory,
@@ -24,6 +25,7 @@ import {
 } from '../../../utils/api';
 
 export const Subcategories: React.FC = () => {
+  useDocumentTitle('NSE Subcategories');
   // API Subcategory Manager state
   const [subcategoriesList, setSubcategoriesList] = useState<SubcategoryResponse[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryResponse[]>([]);

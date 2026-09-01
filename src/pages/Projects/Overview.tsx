@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Project {
   id: string;
@@ -13,6 +14,7 @@ interface Project {
 }
 
 export const Overview: React.FC = () => {
+  useDocumentTitle('Project Overview');
   const projects: Project[] = [
     {
       id: '1',

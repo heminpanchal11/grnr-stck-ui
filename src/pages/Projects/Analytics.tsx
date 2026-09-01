@@ -1,7 +1,9 @@
 import React from 'react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 export const Analytics: React.FC = () => {
+  useDocumentTitle('Projects Analytics');
   const weeklyWorkload = [
     { label: 'W1', value: 34, height: '34%' },
     { label: 'W2', value: 48, height: '48%' },

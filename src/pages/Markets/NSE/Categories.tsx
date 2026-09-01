@@ -14,6 +14,7 @@ import {
   Layers
 } from 'lucide-react';
 import styles from '../../pages.module.css';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import {
   getCategories,
   createCategory,
@@ -32,6 +33,7 @@ interface SectorCategory {
 }
 
 export const Categories: React.FC = () => {
+  useDocumentTitle('NSE Sector Categories');
   // Static Sector Categories state
   const [searchQuery, setSearchQuery] = useState('');
   

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, HelpCircle, Mail, MessageSquare } from 'lucide-react';
 import styles from '../pages.module.css';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Faq {
   q: string;
@@ -8,6 +9,7 @@ interface Faq {
 }
 
 export const Help: React.FC = () => {
+  useDocumentTitle('Help & Support');
   const faqs: Faq[] = [
     {
       q: 'How do I invite new collaborators to my projects?',
