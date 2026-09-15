@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Volume2, AlertTriangle, RefreshCw, Info, Search } from 'lucide-react';
+import { Bell, Volume2, AlertTriangle, RefreshCw, Info, Search, BookmarkPlus, ChevronRight, ChevronDown, Check } from 'lucide-react';
 import styles from '../pages.module.css';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { getCategories, searchAlerts, type VolumeAlertResponse, type SearchAlertsParams } from '../../utils/api';
+import { getCategories, searchAlerts, type VolumeAlertResponse, type SearchAlertsParams, type TagBoardResponse } from '../../utils/api';
+import { getTagBoardsWithFallback, addSymbolToExistingTagboard } from '../../utils/tagboardStore';
 
 export const VolumeAlerts: React.FC = () => {
   useDocumentTitle('Volume Alerts');
@@ -29,6 +30,12 @@ export const VolumeAlerts: React.FC = () => {
   const [criticalCount, setCriticalCount] = useState<number>(0);
   const [categoriesList, setCategoriesList] = useState<string[]>([]);
   const [activeActionRowId, setActiveActionRowId] = useState<number | null>(null);
+
+  // Tagboard states for row level action popover
+  const [tagboardsList, setTagboardsList] = useState<TagBoardResponse[]>([]);
+  const [tagboardsLoading, setTagboardsLoading] = useState<boolean>(false);
+  const [tagboardSubmenuRowId, setTagboardSubmenuRowId] = useState<number | null>(null);
+  const [tagboardFeedback, setTagboardFeedback] = useState<{ rowId: number; message: string } | null>(null);
 
   // Debounce search query
   useEffect(() => {
@@ -63,6 +70,54 @@ export const VolumeAlerts: React.FC = () => {
     document.addEventListener('click', handleOutsideClick);
     return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
+
+  // Load tagboards when popover or submenu opens
+  useEffect(() => {
+    if (activeActionRowId !== null) {
+      const loadTagboards = async () => {
+        setTagboardsLoading(true);
+        try {
+          const boards = await getTagBoardsWithFallback();
+          setTagboardsList(boards);
+        } catch (err) {
+          console.warn('Failed to load tagboards for popover', err);
+        } finally {
+          setTagboardsLoading(false);
+        }
+      };
+      loadTagboards();
+    } else {
+      setTagboardSubmenuRowId(null);
+      setTagboardFeedback(null);
+    }
+  }, [activeActionRowId]);
+
+  // Handle adding stock symbol to a specific tagboard
+  const handleAddToTagboard = async (
+    boardId: number,
+    symbol: string,
+    categoryName: string,
+    subcategoryName: string,
+    rowId: number
+  ) => {
+    try {
+      const res = await addSymbolToExistingTagboard(boardId, {
+        symbol,
+        category: categoryName,
+        subcategory: subcategoryName
+      });
+      setTagboardsList(res.updatedBoards);
+      const msg = res.alreadyExisted
+        ? `Already in ${res.boardName}`
+        : `✓ Added ${symbol} to ${res.boardName}`;
+      setTagboardFeedback({ rowId, message: msg });
+      setTimeout(() => {
+        setTagboardFeedback(prev => (prev?.rowId === rowId ? null : prev));
+      }, 3000);
+    } catch (err: any) {
+      setTagboardFeedback({ rowId, message: err.message || 'Failed to add to tagboard' });
+    }
+  };
 
   // Handle click sorting
   const handleSort = (field: string) => {
@@ -630,7 +685,7 @@ export const VolumeAlerts: React.FC = () => {
                                 flexDirection: 'column',
                                 gap: '8px',
                                 boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15)',
-                                minWidth: '160px',
+                                minWidth: '210px',
                                 backdropFilter: 'blur(8px)',
                               }}>
                                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px', textAlign: 'left', display: 'block' }}>
@@ -678,6 +733,115 @@ export const VolumeAlerts: React.FC = () => {
                                 >
                                   📈 TradingView
                                 </a>
+
+                                <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '2px 0' }} />
+
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px', textAlign: 'left', display: 'block' }}>
+                                  Tagboard Options
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTagboardSubmenuRowId(prev => prev === alert.id ? null : alert.id);
+                                  }}
+                                  style={{
+                                    fontSize: '12px',
+                                    padding: '6px 10px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: tagboardSubmenuRowId === alert.id ? 'var(--primary-light)' : 'var(--bg-tertiary)',
+                                    color: tagboardSubmenuRowId === alert.id ? 'var(--primary)' : 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '6px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    width: '100%'
+                                  }}
+                                  className={styles.popoverLink}
+                                >
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <BookmarkPlus size={14} /> Add to Tagboard
+                                  </span>
+                                  {tagboardSubmenuRowId === alert.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+
+                                {tagboardSubmenuRowId === alert.id && (
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    marginTop: '2px',
+                                    paddingLeft: '6px',
+                                    borderLeft: '2px solid var(--primary-light)'
+                                  }}>
+                                    {tagboardsLoading ? (
+                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '4px' }}>Loading tagboards...</span>
+                                    ) : tagboardsList.length === 0 ? (
+                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '4px' }}>No tagboards found</span>
+                                    ) : (
+                                      tagboardsList.map((board) => {
+                                        const isSymbolInBoard = board.symbols.some(s => s.symbol.toUpperCase() === symInfo.symbol.toUpperCase());
+                                        return (
+                                          <button
+                                            key={board.id}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleAddToTagboard(board.id, symInfo.symbol, catName, subcatName, alert.id);
+                                            }}
+                                            style={{
+                                              fontSize: '11px',
+                                              padding: '5px 8px',
+                                              borderRadius: 'var(--radius-sm)',
+                                              backgroundColor: isSymbolInBoard ? 'var(--primary-light)' : 'var(--bg-primary)',
+                                              color: isSymbolInBoard ? 'var(--primary)' : 'var(--text-secondary)',
+                                              border: '1px solid var(--border-color)',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              cursor: 'pointer',
+                                              textAlign: 'left',
+                                              fontWeight: isSymbolInBoard ? 600 : 400
+                                            }}
+                                            className={styles.popoverLink}
+                                          >
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px' }}>
+                                              📋 {board.name}
+                                            </span>
+                                            {isSymbolInBoard ? (
+                                              <span style={{ fontSize: '10px', color: 'var(--accent-success)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                <Check size={12} /> Added
+                                              </span>
+                                            ) : (
+                                              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>+ Add</span>
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                )}
+
+                                {tagboardFeedback && tagboardFeedback.rowId === alert.id && (
+                                  <div style={{
+                                    fontSize: '11px',
+                                    padding: '5px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: tagboardFeedback.message.includes('Already') ? 'var(--bg-tertiary)' : 'var(--primary-light)',
+                                    color: tagboardFeedback.message.includes('Already') ? 'var(--text-secondary)' : 'var(--primary)',
+                                    fontWeight: 600,
+                                    textAlign: 'center',
+                                    marginTop: '2px',
+                                    border: '1px solid var(--border-color)'
+                                  }}>
+                                    {tagboardFeedback.message}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

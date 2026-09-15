@@ -15,7 +15,6 @@ import {
 import styles from '../pages.module.css';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import {
-  getTagBoards,
   createTagBoard,
   updateTagBoard,
   deleteTagBoard,
@@ -26,6 +25,7 @@ import {
   type StockSymbolResponse,
   type DailyBhav
 } from '../../utils/api';
+import { getTagBoardsWithFallback } from '../../utils/tagboardStore';
 
 // Sub-component to handle rendering individual tagboard heatmaps
 interface TagBoardChartProps {
@@ -282,17 +282,7 @@ export const Tagboard: React.FC = () => {
     setError(null);
     try {
       // 1. Get TagBoards
-      let boards: TagBoardResponse[] = [];
-      try {
-        boards = await getTagBoards();
-      } catch (err) {
-        console.warn('API getTagBoards failed, loading mock tagboards.', err);
-      }
-
-      // If empty list or API failure, load fallback mock tagboards
-      if (!boards || boards.length === 0) {
-        boards = getMockTagboards();
-      }
+      const boards: TagBoardResponse[] = await getTagBoardsWithFallback();
 
       // 2. Fetch all registered symbols for the tag board creator
       let allSymbols: StockSymbolResponse[] = [];
@@ -687,35 +677,7 @@ export const Tagboard: React.FC = () => {
     );
   }, [symbols, symbolSearchQuery]);
 
-  // Mock fallbacks
-  const getMockTagboards = (): TagBoardResponse[] => [
-    {
-      id: 101,
-      name: 'Nifty IT Leaders',
-      symbols: [
-        { id: 2, symbol: 'TCS', category: 'IT', subcategory: 'Software Services' },
-        { id: 3, symbol: 'INFY', category: 'IT', subcategory: 'Software Services' },
-        { id: 4, symbol: 'WIPRO', category: 'IT', subcategory: 'Software Services' }
-      ]
-    },
-    {
-      id: 102,
-      name: 'Energy & Metals',
-      symbols: [
-        { id: 1, symbol: 'RELIANCE', category: 'ENERGY', subcategory: 'OIL_REFINERY' },
-        { id: 8, symbol: 'TATASTEEL', category: 'METALS', subcategory: 'Steel Products' }
-      ]
-    },
-    {
-      id: 103,
-      name: 'Banking Giants',
-      symbols: [
-        { id: 5, symbol: 'HDFCBANK', category: 'FINANCE', subcategory: 'Private Banks' },
-        { id: 6, symbol: 'ICICIBANK', category: 'FINANCE', subcategory: 'Private Banks' },
-        { id: 7, symbol: 'SBIN', category: 'FINANCE', subcategory: 'Public Banks' }
-      ]
-    }
-  ];
+
 
   const getMockSymbols = (): StockSymbolResponse[] => [
     { id: 1, symbol: 'RELIANCE', category: 'ENERGY', subcategory: 'OIL_REFINERY' },
