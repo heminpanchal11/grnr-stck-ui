@@ -4,6 +4,14 @@ import styles from '../pages.module.css';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getCategories, searchDeliveryAlerts, type DeliveryAlertResponse, type SearchAlertsParams } from '../../utils/api';
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const DeliveryAlerts: React.FC = () => {
   useDocumentTitle('Delivery Alerts');
   const [loading, setLoading] = useState<boolean>(true);
@@ -15,7 +23,7 @@ export const DeliveryAlerts: React.FC = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString);
   const [sortField, setSortField] = useState<string>('alertDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -141,14 +149,18 @@ export const DeliveryAlerts: React.FC = () => {
       };
 
       const [data, criticalData] = await Promise.all([
-        searchDeliveryAlerts(params),
-        searchDeliveryAlerts(criticalParams)
+        searchDeliveryAlerts(params).catch(() => null),
+        searchDeliveryAlerts(criticalParams).catch(() => null)
       ]);
 
-      setAlerts(data.content || []);
-      setTotalPages(data.totalPages || 0);
-      setTotalElements(data.totalElements || 0);
-      setCriticalCount(criticalData.totalElements || 0);
+      if (data && Array.isArray(data.content)) {
+        setAlerts(data.content);
+        setTotalPages(data.totalPages ?? Math.ceil(data.content.length / pageSize));
+        setTotalElements(data.totalElements ?? data.content.length);
+        setCriticalCount(criticalData?.totalElements ?? 0);
+      } else {
+        useMockData();
+      }
     } catch (e: any) {
       console.warn('Backend delivery alerts search failed, falling back to mock dataset.', e);
       setError(e.message || 'Failed to retrieve delivery alerts from backend.');
@@ -159,6 +171,7 @@ export const DeliveryAlerts: React.FC = () => {
   };
 
   const useMockData = () => {
+    const todayStr = getTodayDateString();
     const mockAlerts: DeliveryAlertResponse[] = [
       {
         id: 1,
@@ -168,7 +181,7 @@ export const DeliveryAlerts: React.FC = () => {
           category: 'ENERGY',
           subcategory: 'OIL_REFINERY'
         } as any,
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageDeliveryPercentage: 25.5,
         latestDeliveryPercentage: 76.5,
         multiplier: 3.0,
@@ -185,7 +198,7 @@ export const DeliveryAlerts: React.FC = () => {
           category: 'IT',
           subcategory: 'Software Services'
         } as any,
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageDeliveryPercentage: 30.0,
         latestDeliveryPercentage: 75.0,
         multiplier: 2.5,
@@ -202,7 +215,7 @@ export const DeliveryAlerts: React.FC = () => {
           category: 'FINANCE',
           subcategory: 'Public Banks'
         } as any,
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageDeliveryPercentage: 20.0,
         latestDeliveryPercentage: 36.0,
         multiplier: 1.8,
@@ -219,7 +232,7 @@ export const DeliveryAlerts: React.FC = () => {
           category: 'METALS',
           subcategory: 'Steel Products'
         } as any,
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageDeliveryPercentage: 35.0,
         latestDeliveryPercentage: 45.5,
         multiplier: 1.3,
@@ -714,8 +727,29 @@ export const DeliveryAlerts: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={11} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                      No matching delivery anomalies found.
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <span>No matching delivery anomalies found{selectedDate ? ` for ${selectedDate}` : ''}.</span>
+                        {selectedDate && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDate('')}
+                            style={{
+                              marginTop: '6px',
+                              padding: '6px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: 'var(--primary-light)',
+                              color: 'var(--primary)',
+                              border: '1px solid var(--border-color)',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 600
+                            }}
+                          >
+                            View All Recorded Dates
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}

@@ -5,6 +5,14 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getCategories, searchAlerts, type VolumeAlertResponse, type SearchAlertsParams, type TagBoardResponse } from '../../utils/api';
 import { getTagBoardsWithFallback, addSymbolToExistingTagboard } from '../../utils/tagboardStore';
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const VolumeAlerts: React.FC = () => {
   useDocumentTitle('Volume Alerts');
   const [loading, setLoading] = useState<boolean>(true);
@@ -16,8 +24,8 @@ export const VolumeAlerts: React.FC = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [sortField, setSortField] = useState<string>('alertDate');
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString);
+  const [sortField, setSortField] = useState<string>('multiplier');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Pagination states
@@ -209,6 +217,7 @@ export const VolumeAlerts: React.FC = () => {
   };
 
   const useMockData = () => {
+    const todayStr = getTodayDateString();
     const mockAlerts: VolumeAlertResponse[] = [
       {
         id: 1,
@@ -224,7 +233,7 @@ export const VolumeAlerts: React.FC = () => {
             }
           }
         },
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageVolume: 4200000,
         latestVolume: 14700000,
         multiplier: 3.5,
@@ -248,7 +257,7 @@ export const VolumeAlerts: React.FC = () => {
             }
           }
         },
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageVolume: 2100000,
         latestVolume: 5460000,
         multiplier: 2.6,
@@ -272,7 +281,7 @@ export const VolumeAlerts: React.FC = () => {
             }
           }
         },
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageVolume: 5800000,
         latestVolume: 10440000,
         multiplier: 1.8,
@@ -296,7 +305,7 @@ export const VolumeAlerts: React.FC = () => {
             }
           }
         },
-        alertDate: '2026-06-18',
+        alertDate: todayStr,
         averageVolume: 12000000,
         latestVolume: 15600000,
         multiplier: 1.3,
@@ -901,8 +910,29 @@ export const VolumeAlerts: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={12} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                      No matching volume anomalies found.
+                    <td colSpan={12} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <span>No matching volume anomalies found{selectedDate ? ` for ${selectedDate}` : ''}.</span>
+                        {selectedDate && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDate('')}
+                            style={{
+                              marginTop: '6px',
+                              padding: '6px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: 'var(--primary-light)',
+                              color: 'var(--primary)',
+                              border: '1px solid var(--border-color)',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 600
+                            }}
+                          >
+                            View All Recorded Dates
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
