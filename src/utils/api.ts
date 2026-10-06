@@ -1,3 +1,7 @@
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.PROD ? 'https://grnr-stck-api.onrender.com' : '')
+).replace(/\/+$/, '');
+
 export interface CategoryRequest {
   name: string;
 }
@@ -34,7 +38,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * GET /api/v1/categories
  */
 export async function getCategories(): Promise<CategoryResponse[]> {
-  const response = await fetch('/api/v1/categories');
+  const response = await fetch(`${API_BASE_URL}/api/v1/categories`);
   return handleResponse<CategoryResponse[]>(response);
 }
 
@@ -43,7 +47,7 @@ export async function getCategories(): Promise<CategoryResponse[]> {
  * POST /api/v1/categories
  */
 export async function createCategory(request: CategoryRequest): Promise<CategoryResponse> {
-  const response = await fetch('/api/v1/categories', {
+  const response = await fetch(`${API_BASE_URL}/api/v1/categories`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +62,7 @@ export async function createCategory(request: CategoryRequest): Promise<Category
  * PUT /api/v1/categories/{id}
  */
 export async function updateCategory(id: number, request: CategoryRequest): Promise<CategoryResponse> {
-  const response = await fetch(`/api/v1/categories/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/categories/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -73,7 +77,7 @@ export async function updateCategory(id: number, request: CategoryRequest): Prom
  * DELETE /api/v1/categories/{id}
  */
 export async function deleteCategory(id: number): Promise<void> {
-  const response = await fetch(`/api/v1/categories/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/categories/${id}`, {
     method: 'DELETE',
   });
   return handleResponse<void>(response);
@@ -96,7 +100,7 @@ export interface SubcategoryResponse {
  * GET /api/v1/subcategories
  */
 export async function getSubcategories(): Promise<SubcategoryResponse[]> {
-  const response = await fetch('/api/v1/subcategories');
+  const response = await fetch(`${API_BASE_URL}/api/v1/subcategories`);
   return handleResponse<SubcategoryResponse[]>(response);
 }
 
@@ -105,7 +109,7 @@ export async function getSubcategories(): Promise<SubcategoryResponse[]> {
  * POST /api/v1/subcategories
  */
 export async function createSubcategory(request: SubcategoryRequest): Promise<SubcategoryResponse> {
-  const response = await fetch('/api/v1/subcategories', {
+  const response = await fetch(`${API_BASE_URL}/api/v1/subcategories`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -120,7 +124,7 @@ export async function createSubcategory(request: SubcategoryRequest): Promise<Su
  * PUT /api/v1/subcategories/{id}
  */
 export async function updateSubcategory(id: number, request: SubcategoryRequest): Promise<SubcategoryResponse> {
-  const response = await fetch(`/api/v1/subcategories/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/subcategories/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -135,7 +139,7 @@ export async function updateSubcategory(id: number, request: SubcategoryRequest)
  * DELETE /api/v1/subcategories/{id}
  */
 export async function deleteSubcategory(id: number): Promise<void> {
-  const response = await fetch(`/api/v1/subcategories/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/subcategories/${id}`, {
     method: 'DELETE',
   });
   return handleResponse<void>(response);
@@ -159,7 +163,7 @@ export interface StockSymbolResponse {
  * GET /api/v1/symbols
  */
 export async function getSymbols(): Promise<StockSymbolResponse[]> {
-  const response = await fetch('/api/v1/symbols');
+  const response = await fetch(`${API_BASE_URL}/api/v1/symbols`);
   return handleResponse<StockSymbolResponse[]>(response);
 }
 
@@ -168,7 +172,7 @@ export async function getSymbols(): Promise<StockSymbolResponse[]> {
  * POST /api/v1/symbols
  */
 export async function createSymbol(request: StockSymbolRequest): Promise<StockSymbolResponse> {
-  const response = await fetch('/api/v1/symbols', {
+  const response = await fetch(`${API_BASE_URL}/api/v1/symbols`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -183,7 +187,7 @@ export async function createSymbol(request: StockSymbolRequest): Promise<StockSy
  * PUT /api/v1/symbols/{symbolName}
  */
 export async function updateSymbol(symbolName: string, request: StockSymbolRequest): Promise<StockSymbolResponse> {
-  const response = await fetch(`/api/v1/symbols/${encodeURIComponent(symbolName)}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/symbols/${encodeURIComponent(symbolName)}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -198,7 +202,7 @@ export async function updateSymbol(symbolName: string, request: StockSymbolReque
  * DELETE /api/v1/symbols/{symbolName}
  */
 export async function deleteSymbol(symbolName: string): Promise<void> {
-  const response = await fetch(`/api/v1/symbols/${encodeURIComponent(symbolName)}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/symbols/${encodeURIComponent(symbolName)}`, {
     method: 'DELETE',
   });
   return handleResponse<void>(response);
@@ -234,7 +238,7 @@ export interface VolumeAlertResponse {
  * GET /api/v1/alerts
  */
 export async function getAlerts(): Promise<VolumeAlertResponse[]> {
-  const response = await fetch('/api/v1/alerts');
+  const response = await fetch(`${API_BASE_URL}/api/v1/alerts`);
   return handleResponse<VolumeAlertResponse[]>(response);
 }
 
@@ -289,7 +293,7 @@ export async function searchAlerts(params: SearchAlertsParams): Promise<PageVolu
   if (params.sortBy) queryParams.append('sortBy', params.sortBy);
   if (params.sortDir) queryParams.append('sortDir', params.sortDir);
 
-  const response = await fetch(`/api/v1/alerts/search?${queryParams.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/api/v1/alerts/search?${queryParams.toString()}`);
   return handleResponse<PageVolumeAlert>(response);
 }
 
@@ -299,8 +303,8 @@ export async function searchAlerts(params: SearchAlertsParams): Promise<PageVolu
  */
 export async function getLatestBhav(symbol?: string): Promise<any> {
   const url = symbol 
-    ? `/api/v1/scrapper/bhav/latest?symbol=${encodeURIComponent(symbol)}`
-    : '/api/v1/scrapper/bhav/latest';
+    ? `${API_BASE_URL}/api/v1/scrapper/bhav/latest?symbol=${encodeURIComponent(symbol)}`
+    : `${API_BASE_URL}/api/v1/scrapper/bhav/latest`;
   const response = await fetch(url);
   return handleResponse<any>(response);
 }
@@ -310,7 +314,7 @@ export async function getLatestBhav(symbol?: string): Promise<any> {
  * GET /api/v1/bhav/{symbol}/latest
  */
 export async function getLatestBhavForSymbol(symbol: string): Promise<any> {
-  const response = await fetch(`/api/v1/bhav/${encodeURIComponent(symbol)}/latest`);
+  const response = await fetch(`${API_BASE_URL}/api/v1/bhav/${encodeURIComponent(symbol)}/latest`);
   return handleResponse<any>(response);
 }
 
@@ -331,7 +335,7 @@ export interface VolumeAlertDailySummarySubcategory {
  * GET /api/v1/alerts/daily-summary
  */
 export async function getDailyAlertsSummary(): Promise<VolumeAlertDailySummaryCategory[]> {
-  const response = await fetch('/api/v1/alerts/daily-summary');
+  const response = await fetch(`${API_BASE_URL}/api/v1/alerts/daily-summary`);
   return handleResponse<VolumeAlertDailySummaryCategory[]>(response);
 }
 
@@ -340,7 +344,7 @@ export async function getDailyAlertsSummary(): Promise<VolumeAlertDailySummaryCa
  * GET /api/v1/alerts/daily-subcategory-summary
  */
 export async function getDailyAlertsSubcategorySummary(): Promise<VolumeAlertDailySummarySubcategory[]> {
-  const response = await fetch('/api/v1/alerts/daily-subcategory-summary');
+  const response = await fetch(`${API_BASE_URL}/api/v1/alerts/daily-subcategory-summary`);
   return handleResponse<VolumeAlertDailySummarySubcategory[]>(response);
 }
 
@@ -375,7 +379,7 @@ export interface DailyBhav {
  * GET /api/v1/tag-boards
  */
 export async function getTagBoards(): Promise<TagBoardResponse[]> {
-  const response = await fetch('/api/v1/tag-boards');
+  const response = await fetch(`${API_BASE_URL}/api/v1/tag-boards`);
   return handleResponse<TagBoardResponse[]>(response);
 }
 
@@ -384,7 +388,7 @@ export async function getTagBoards(): Promise<TagBoardResponse[]> {
  * POST /api/v1/tag-boards
  */
 export async function createTagBoard(request: TagBoardRequest): Promise<TagBoardResponse> {
-  const response = await fetch('/api/v1/tag-boards', {
+  const response = await fetch(`${API_BASE_URL}/api/v1/tag-boards`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -399,7 +403,7 @@ export async function createTagBoard(request: TagBoardRequest): Promise<TagBoard
  * PUT /api/v1/tag-boards/{id}
  */
 export async function updateTagBoard(id: number, request: TagBoardRequest): Promise<TagBoardResponse> {
-  const response = await fetch(`/api/v1/tag-boards/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/tag-boards/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -414,7 +418,7 @@ export async function updateTagBoard(id: number, request: TagBoardRequest): Prom
  * DELETE /api/v1/tag-boards/{id}
  */
 export async function deleteTagBoard(id: number): Promise<void> {
-  const response = await fetch(`/api/v1/tag-boards/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/tag-boards/${id}`, {
     method: 'DELETE',
   });
   return handleResponse<void>(response);
@@ -430,8 +434,8 @@ export async function getHistoricBhav(symbol: string, startDate?: string, endDat
   if (endDate) queryParams.append('endDate', endDate);
   
   const url = queryParams.toString() 
-    ? `/api/v1/bhav/${encodeURIComponent(symbol)}/historic?${queryParams.toString()}`
-    : `/api/v1/bhav/${encodeURIComponent(symbol)}/historic`;
+    ? `${API_BASE_URL}/api/v1/bhav/${encodeURIComponent(symbol)}/historic?${queryParams.toString()}`
+    : `${API_BASE_URL}/api/v1/bhav/${encodeURIComponent(symbol)}/historic`;
     
   const response = await fetch(url);
   return handleResponse<DailyBhav[]>(response);
@@ -480,7 +484,7 @@ export async function searchDeliveryAlerts(params: SearchAlertsParams): Promise<
   if (params.sortBy) queryParams.append('sortBy', params.sortBy);
   if (params.sortDir) queryParams.append('sortDir', params.sortDir);
 
-  const response = await fetch(`/api/v1/delivery-alerts/search?${queryParams.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/api/v1/delivery-alerts/search?${queryParams.toString()}`);
   return handleResponse<PageDeliveryAlert>(response);
 }
 

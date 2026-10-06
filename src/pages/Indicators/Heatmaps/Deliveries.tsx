@@ -3,6 +3,7 @@ import * as echarts from 'echarts';
 import { RefreshCw, TrendingUp, Info, Maximize2, Minimize2 } from 'lucide-react';
 import styles from '../../pages.module.css';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
+import { API_BASE_URL } from '../../../utils/api';
 
 interface StockData {
   symbol: string;
@@ -85,7 +86,7 @@ export const DeliveriesHeatmap: React.FC = () => {
     setError(null);
     try {
       // 1. Fetch all symbols to know their categories and subcategories
-      const symbolsRes = await fetch('/api/v1/symbols');
+      const symbolsRes = await fetch(`${API_BASE_URL}/api/v1/symbols`);
       if (!symbolsRes.ok) {
         throw new Error(`Failed to fetch symbols: ${symbolsRes.status}`);
       }
@@ -99,7 +100,7 @@ export const DeliveriesHeatmap: React.FC = () => {
 
       // 2. Fetch latest pricing for all symbols in batch
       const symbolNames = symbols.map((sym: any) => sym.symbol).join(',');
-      const res = await fetch(`/api/v1/bhav/${encodeURIComponent(symbolNames)}/latest`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/bhav/${encodeURIComponent(symbolNames)}/latest`);
       
       let bhavList: any[] = [];
       if (res.ok) {
