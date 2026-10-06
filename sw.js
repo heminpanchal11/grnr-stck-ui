@@ -1,16 +1,18 @@
 const CACHE_NAME = 'grnr-stck-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/favicon.svg',
-  '/icons.svg',
-  '/manifest.json'
+  './',
+  './index.html',
+  './favicon.svg',
+  './icons.svg',
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((asset) => cache.add(asset))
+      );
     })
   );
   self.skipWaiting();
@@ -41,7 +43,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Bypassing API routes for caching to ensure real-time accuracy, but return JSON error on failure
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
         return new Response(JSON.stringify({ 
