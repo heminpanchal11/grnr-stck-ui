@@ -22,7 +22,7 @@ export default defineConfig({
   ],
   server: {
 
-    host: '0.0.0.0',
+    host: 'grnr-stck-api.onrender.com',
     port: 5173,
     proxy: {
       '/api': {
